@@ -30,8 +30,8 @@ public sealed class MainViewModel : Observable, IAsyncDisposable
     private string? profileId;
     private bool refreshing;
     private bool disposed;
-    public DesktopSettings Settings { get; } = DesktopSettings.Load();
-    public string DataDirectory => DesktopSettings.DataDirectory;
+    public DesktopSettings Settings { get; }
+    public string DataDirectory => Settings.StorageDirectory;
     public string GmailStatus => gmailAuth.Account == null ? "Gmail 未连接" : "Gmail · " + gmailAuth.Account;
     public ObservableCollection<Professor> Professors { get; } = [];
     public ObservableCollection<Paper> Papers { get; } = [];
@@ -57,7 +57,13 @@ public sealed class MainViewModel : Observable, IAsyncDisposable
     public Professor? SelectedProfessor
     {
         get => selectedProfessor;
-        set { if (Set(ref selectedProfessor, value) && value != null && !refreshing) LoadProfessor(); }
+        set
+        {
+            if (!Set(ref selectedProfessor, value) || refreshing) return;
+            SelectedPaper = null; SelectedHistory = null;
+            PaperText = "选择论文后点击阅读。";
+            LoadProfessor();
+        }
     }
     public Paper? SelectedPaper { get; set; }
     public OutreachHistory? SelectedHistory { get; set; }
@@ -69,11 +75,16 @@ public sealed class MainViewModel : Observable, IAsyncDisposable
         get => selectedDraft;
         set
         {
-            if (!Set(ref selectedDraft, value) || value == null || refreshing) return;
-            Raise(nameof(DraftLocked));
-            Recipient = value.Recipient; Subject = value.Subject; Body = value.Body; Attachment = value.CvPath ?? "";
-            Raise(nameof(Recipient)); Raise(nameof(Subject)); Raise(nameof(Body)); Raise(nameof(Attachment));
+            if (Set(ref selectedDraft, value) && !refreshing) LoadDraftEditor();
         }
+    }
+    private void LoadDraftEditor()
+    {
+        Recipient = SelectedDraft?.Recipient ?? ""; Subject = SelectedDraft?.Subject ?? "";
+        Body = SelectedDraft?.Body ?? ""; Attachment = SelectedDraft?.CvPath ?? "";
+        Raise(nameof(Recipient)); Raise(nameof(Subject)); Raise(nameof(Body)); Raise(nameof(Attachment));
+        Raise(nameof(DraftLocked));
+        CommandManager.InvalidateRequerySuggested();
     }
     public string Recipient { get; set; } = "";
     public string Subject { get; set; } = "";
@@ -116,12 +127,13 @@ public sealed class MainViewModel : Observable, IAsyncDisposable
     public ICommand ReconcileCommand { get; }
     public ICommand SyncRepliesCommand { get; }
 
-    public MainViewModel()
+    public MainViewModel(string? dataDirectory = null)
     {
+        Settings = DesktopSettings.Load(dataDirectory);
         Directory.CreateDirectory(DataDirectory);
         database = new(Path.Combine(DataDirectory, "tools-touch.db")); database.Initialize();
         store = new(database); library = new(database, DataDirectory, web); outreach = new(database);
-        gmailAuth = new GmailAuth(http, new WindowsSecretStore(), () => GoogleClient.FromFile(Settings.GoogleClientFile));
+        gmailAuth = new GmailAuth(http, new WindowsSecretStore(DataDirectory), () => GoogleClient.FromFile(Settings.GoogleClientFile));
         gmail = new GmailService(http, gmailAuth);
         store.RecoverInterruptedRuns(); outreach.RecoverInterruptedSends();
         UiCommand Command(Func<Task> action, Func<bool>? enabled = null) => new(action, ReportError, enabled);
@@ -287,11 +299,17 @@ public sealed class MainViewModel : Observable, IAsyncDisposable
             Raise(nameof(Summary));
         }
         finally { refreshing = false; }
-        if (SelectedProfessor != null) LoadProfessor();
+        if (SelectedDraft == null) LoadDraftEditor();
+        LoadProfessor();
     }
     private void LoadProfessor()
     {
-        if (SelectedProfessor == null) return;
+        if (SelectedProfessor == null)
+        {
+            Papers.Clear(); ProfessorHistory.Clear(); SelectedPaper = null; SelectedHistory = null;
+            Analysis = "选择导师后查看研究分析。"; PaperText = "选择论文后点击阅读。";
+            return;
+        }
         Replace(Papers, library.ListPapers(SelectedProfessor.Id));
         Replace(ProfessorHistory, outreach.History(SelectedProfessor.Id));
         var json = discovery?.LatestAnalysis(SelectedProfessor.Id);

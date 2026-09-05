@@ -1,16 +1,16 @@
 # 目标逐项验收
 
-目标为用户提供的 pasted-text-1.txt 全文；以下不改变目标范围。**目标尚未完成**，主要缺少原生 Windows 与真实账号 / 搜索 API 的端到端证据。
+目标为用户提供的 pasted-text-1.txt 全文；以下不改变目标范围。**目标尚未完成**，主要缺少真实账号 / 搜索 API 的端到端证据和人工完整验收。已补充 Windows 原生自动检查，见下方本次续开发记录。
 
 ## 实现与当前证据
 
 | 要求 | 当前实现 / 证据 | 尚需验收 |
 |---|---|---|
-| WPF、MVVM、六页面 | Desktop 项目、MainWindow.xaml、MainViewModel；WPF 交叉构建通过 | Windows 渲染、导航、编辑、命令状态与实际使用 |
+| WPF、MVVM、六页面 | Windows 11 原生渲染六页与三个详情子页；绑定、导航、草稿编辑/锁定/空选择自动检查 | 人工完整操作、不同 DPI 和干净 Windows 用户实际使用 |
 | Pi Runtime / Provider / Loop 复用 | AgentHost 使用 ModelRuntime 和 createAgentSession，session.ts 创建业务会话 | 真实 OpenAI 登录与模型调用 |
 | OpenAI 凭据只由 Pi 管理 | login 仅调用 Pi Provider，向 WPF 转发 URL / 提示，凭据返回值不输出 | Windows 浏览器登录、重新连接、过期刷新 |
 | Gmail 单独 OAuth | GmailAuth：随机 loopback、state、PKCE、send/readonly；回调模拟测试通过 | 真实 Google Desktop client 与授权 |
-| Windows 安全存储 | WindowsSecretStore 使用 DPAPI CurrentUser；代码交叉编译通过 | Windows 加解密、重启后刷新与账号重连 |
+| Windows 安全存储 | WindowsSecretStore 使用 DPAPI CurrentUser；合成凭据加密、跨进程读取、替换/损坏/删除实测通过 | 真实账号重启后刷新与重连、跨 Windows 用户隔离 |
 | Gmail API 发送且人工确认 | MainViewModel.SendAsync → OutreachService → GmailService；没有发送工具 | Windows 人工确认界面；真实发送仅由用户操作或另行明确授权 |
 | SQLite、CV、论文、本地草稿 | 001–003 SQL 迁移、ResearchStore/LibraryService/OutreachService | Windows 文件权限和真实文档兼容性 |
 | 八个工具，search_professors 查本地 | TS Schema + C# ToolDispatcher 双边校验；非法工具 / 参数测试通过 | 真实模型工具往返 |
@@ -38,16 +38,39 @@
 - `dotnet build src/ToolsTouch.Desktop`：仅证明 Windows 目标的 C#/XAML 编译。
 - `python scripts/package.py`：测试后发布 self-contained win-x64，按锁文件装 Windows 依赖、校验官方 Node 下载，生成便携 zip。BUILD-MANIFEST 中 Windows 运行标记为 false。
 
-## 当前外部条件
+## 上轮外部条件（历史记录）
 
 执行环境仍是 Linux，没有获得可访问的原生 Windows 会话、Google Desktop OAuth 配置路径或 Brave 密钥文件路径。已通过异步问题请求这些信息，尚未收到回答。不能把时间经过当作凭据、授权或 Windows 验证已完成。
 
 **完成判定仍为未证明。** 获得对应条件后，按 WINDOWS.md 的真实核心流程补齐证据，并修复发现的问题；禁止仅凭绿色测试标记目标完成。
 
-## 阻塞审计
+## 上轮阻塞审计（历史记录）
 
 最近三轮持续缺少同一组真实验收条件：可访问的原生 Windows 环境、Google Desktop OAuth 配置及 Brave API 凭据。此前两轮仍完成了独立实现、测试和打包；本轮重新读取目标、验收记录并确认宿主仍为 Linux，配置目录仍仅有示例，用户未提供上述条件。
 
 上一轮属于实际进展，已产生 r2 便携包并验证全部文件哈希。当前未发现可替代真实环境/账号验收的本地操作；再次构建或重复模拟测试不能补足这些缺口。目标标记 blocked，保留原始范围，未标记 complete。
 
 恢复所需：提供 Windows 验证环境访问方式及 Google Desktop OAuth JSON / Brave 密钥文件的路径，在该环境由用户完成必要的 OpenAI 与 Gmail 登录。无需在对话中粘贴 Token 或密钥；真实邮件发送仍须用户在应用中操作或另行明确授权。
+
+## 本次续开发结果（2026-09-04，本地时间）
+
+上面的环境阻塞为历史记录。本轮已经获得 Windows 宿主，并完成原生自动检查，Windows 不再是同一项外部阻塞。真实账号和搜索 API 的验收条件仍未提供。
+
+执行 `python scripts/test-windows.py --package artifacts/ToolsTouch-win-x64-r3 --test-exe artifacts/desktop-tests-win/ToolsTouch.Desktop.Tests.exe --output artifacts/windows-smoke-r3`，退出码 0，7 组检查全部通过。系统报告 Windows NT 10.0.26200.0 / .NET 10.0.11，记录时间为 2026-09-05 06:11:41 UTC。
+
+| 本次证据 | 证明范围 |
+|---|---|
+| `artifacts/windows-smoke-r3/results.json` | 7 组原生检查，failures=0；realAccountsUsed=false、realMailSent=false |
+| 同目录 `page-1.png` 至 `page-6.png`、`detail-1.png` 至 `detail-3.png` | 实际 MainWindow 在 Windows 上的屏幕外渲染，六页与三个详情子页可加载；无绑定错误 |
+| DPAPI 独立子进程 | 合成凭据可跨进程持久化读取，替换、损坏检测和删除正确；不证明真实 Gmail 刷新或跨用户隔离 |
+| 草稿与导师交互回归 | 编辑保存、刷新保留未保存内容、Sent 锁定、取消选择清空草稿、筛选移除导师清空详情 |
+| 包内 Node / Pi 与 App 同步退出方式 | 原生匿名状态握手和模型列表；界面线程等待桥接清理时不再死锁，不证明真实登录/模型调用 |
+| r3 包与测试程序集哈希一致 | 实际测试的 Desktop / Core 程序集与 r3 包中的程序集完全相同 |
+
+`BUILD-MANIFEST.json` 仍保留 `windowsRuntimeVerified=false`，避免把上述自动检查当作完整原生验收。仍需验证真实账号、Brave、真实模型工具循环、用户发送/收到回复，以及 App 启动入口/单实例、不同 DPI 和干净 Windows 用户的完整人工流程。
+
+## 安装版 v0.1.0
+
+`scripts/test-installer.py` 对最终安装 EXE 的检查已通过，结果在 `artifacts/installer-check-v0.1.0/results.json`（passed=true）。覆盖当前用户安装/卸载登记、26,234 个安装文件哈希、重复安装修复被修改的程序文件、安装目录下用户自建文件保留，以及卸载后应用文件与登记清理。实际安装的 Node/Pi 和与安装包字节一致的桌面程序集同时通过 7 组原生检查。所有过程均在临时目录执行，未使用真实账号或发送邮件。
+
+GitHub Release 随包提供安装器构建元数据、校验值和上述两份 JSON 验证结果。没有代码签名、真实账号完整验收或跨 Windows 用户的人工验收证据。

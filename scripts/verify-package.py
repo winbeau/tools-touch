@@ -14,4 +14,4 @@ for name, expected in manifest["files"].items():
     path = (root / name).resolve()
     if not path.is_relative_to(root) or not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
         raise SystemExit(f"Package integrity mismatch: {name}")
-print(f"PASS: {len(manifest['files'])} packaged file hashes. Native Windows execution remains unverified.")
+print(f"PASS: {len(manifest['files'])} packaged file hashes. Hash verification does not establish native Windows acceptance.")

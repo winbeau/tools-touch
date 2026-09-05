@@ -89,3 +89,24 @@
 - 完整核心回归及新增 arXiv 解析/安全/回退/取消测试通过。WPF 交叉编译通过；没有真实邮件发送。
 - 新包 `artifacts/ToolsTouch-win-x64-r2.zip` 已生成，包含以上修复。构建清单改为覆盖全部产物文件，提供 verify-package.py。
 - 已按目标建立 ACCEPTANCE.md；真实 Windows、OpenAI/Gmail 账号及 Brave 配额证据仍缺失。异步配置问题未收到回复，本轮仍完成了独立实现和验证，不标记目标完成或阻塞。
+
+## 2026-09-04 续开发：Windows 原生检查与桌面修复
+
+- 本轮可访问 Windows 宿主，已补齐上轮缺少的部分原生证据。实测系统为 Windows NT 10.0.26200.0，运行时 .NET 10.0.11；完成时间为 2026-09-05 06:11 UTC（本地 9 月 4 日）。
+- 新增 `tests/ToolsTouch.Desktop.Tests` 与 `scripts/test-windows.py`。测试发布为 self-contained win-x64，使用实际 MainWindow/MainViewModel、STA Dispatcher 和独立临时数据目录；不访问正式应用资料、真实账号或邮件。
+- Windows 复现后修复三处问题：取消草稿选择仍留下可编辑旧正文；筛选移除导师后留下旧投递历史；Pi 已连接时退出界面，管道读取续体依赖 UI Dispatcher 导致死锁。退出修复前原生回归明确失败，修复后通过。
+- DesktopSettings 与 WindowsSecretStore 支持显式指定隔离目录，默认仍使用原有 `%LOCALAPPDATA%\ToolsTouch`。存储目录不写入设置 JSON。
+- 原生 7 组检查全部通过：DPAPI 合成凭据加密、另一进程读取、替换/损坏/删除；隔离设置持久化；六页和三个详情子页渲染；编辑、保存、刷新保留未保存内容、已发送锁定与空选择；导师筛选后的详情清理；真实包内 Node/Pi 匿名状态握手及 UI 阻塞等待退出；交互全程无 WPF 绑定错误。
+- 证据保存在 `artifacts/windows-smoke-r3/results.json` 和同目录九张 PNG。这是屏幕外的实际 WPF 渲染与程序化交互，没有执行完整 App 启动/单实例或人工全流程验收。
+- 从 WSL 共享路径直接运行会出现 WPF PenImc DLL 加载失败及 Pi 启动超时；DLL 实际存在。Windows 本地目录运行通过。脚本复制到 Windows 临时目录，并支持深层 npm 依赖的 Windows 长路径。
+- AgentHost 7 项测试、全部核心回归和 Release 发布通过。生成 r3 便携包；测试目录与包内 `ToolsTouch.dll`、`ToolsTouch.Core.dll` 的 SHA-256 一致。完整包哈希清单校验通过。
+- 仍待真实 OpenAI/Gmail 登录、模型工具流程、Brave 检索、人工发送与回复验收，以及不同 DPI / 干净 Windows 用户验证。Windows 自动检查通过不等于原始目标全部完成。
+
+## 2026-09-04 安装 EXE 与 GitHub Release
+
+- 按用户要求新增 Inno Setup 安装器和 `scripts/build-installer.py`，以通过逐文件哈希校验的 r3 便携 ZIP 为输入，生成 `ToolsTouch-Setup-0.1.0-win-x64.exe`（187,959,790 字节）。只打包清单列出的文件，不纳入工作区或用户资料。
+- 当前用户安装到 `%LOCALAPPDATA%\Programs\ToolsTouch`，无需管理员权限；固定 AppId 支持覆盖升级，应用运行时以已有 `Local\ToolsTouch` 互斥量阻止安装/卸载。提供开始菜单、可选桌面快捷方式及卸载入口；不配置删除业务数据的规则。
+- 新增 `scripts/test-installer.py`，使用独立临时目录执行安装、全部 26,234 个文件的哈希核对、重复安装修复，以及使用实际安装的 Node/Pi 和相同桌面程序集执行 7 组原生检查。测试拒绝覆盖当前用户已有的正式安装。
+- 安装 EXE SHA-256：`8f58de4e8d4f52ddae3461babd8ce09aa0fae2c98824f18a345e0fa37eef8bf1`。当前未做代码签名；构建元数据和 SHA256SUMS 随 GitHub Release 提供。
+- 版本说明保存在 `docs/releases/v0.1.0.md`，明确真实账号和完整业务流程的验收缺口。本次发布不改变这些限制。
+- 安装生命周期检查最终退出码 0：安装、文件完整性、重复安装修复、原生桌面检查与卸载全部通过。卸载移除了应用和注册表入口，保留安装目录内的用户自建文件。证据在 `artifacts/installer-check-v0.1.0/results.json`；期间未使用真实账号或发送邮件。

@@ -83,7 +83,9 @@ public sealed class AgentBridge : IAgentBridge, IAsyncDisposable
     {
         try
         {
-            while (await process.StandardOutput.ReadLineAsync(lifetime.Token) is { } line)
+            // Pipe readers must not capture WPF's dispatcher: App.OnExit waits for them
+            // while disposing the bridge with the UI thread blocked.
+            while (await process.StandardOutput.ReadLineAsync(lifetime.Token).ConfigureAwait(false) is { } line)
             {
                 if (line.Length > 2_000_000) throw new InvalidOperationException("AGENT_FRAME_TOO_LARGE");
                 using var document = JsonDocument.Parse(line);
@@ -153,7 +155,7 @@ public sealed class AgentBridge : IAgentBridge, IAsyncDisposable
 
     private async Task DrainErrorsAsync()
     {
-        try { while (await process.StandardError.ReadLineAsync(lifetime.Token) != null) { } }
+        try { while (await process.StandardError.ReadLineAsync(lifetime.Token).ConfigureAwait(false) != null) { } }
         catch (OperationCanceledException) { }
     }
 

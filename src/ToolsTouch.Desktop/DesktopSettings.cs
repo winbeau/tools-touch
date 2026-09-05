@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using ToolsTouch.Core;
 
 namespace ToolsTouch.Desktop;
@@ -14,11 +15,21 @@ public sealed class DesktopSettings
     public string SearchKeyFile { get; set; } = "";
     public string GoogleClientFile { get; set; } = "";
     public static string DataDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ToolsTouch");
-    private static string SettingsPath => Path.Combine(DataDirectory, "settings.json");
-    public static DesktopSettings Load() => File.Exists(SettingsPath) ? JsonSerializer.Deserialize<DesktopSettings>(File.ReadAllText(SettingsPath), ResearchStore.Json)! : new();
+    [JsonIgnore]
+    public string StorageDirectory { get; private set; } = DataDirectory;
+    private string SettingsPath => Path.Combine(StorageDirectory, "settings.json");
+    public static DesktopSettings Load(string? dataDirectory = null)
+    {
+        var directory = Path.GetFullPath(dataDirectory ?? DataDirectory);
+        var path = Path.Combine(directory, "settings.json");
+        var settings = File.Exists(path) ? JsonSerializer.Deserialize<DesktopSettings>(File.ReadAllText(path), ResearchStore.Json)
+            ?? throw new InvalidDataException("SETTINGS_INVALID") : new();
+        settings.StorageDirectory = directory;
+        return settings;
+    }
     public void Save()
     {
-        Directory.CreateDirectory(DataDirectory);
+        Directory.CreateDirectory(StorageDirectory);
         File.WriteAllText(SettingsPath + ".tmp", ResearchStore.Serialize(this));
         File.Move(SettingsPath + ".tmp", SettingsPath, true);
     }

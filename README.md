@@ -2,9 +2,11 @@
 
 正在实现的 Windows WPF 导师发现与投递工作台。Pi 负责发现、论文分析与起草；C# 应用服务负责本地数据、人工发送和回复状态。
 
-已提供六页 WPF、研究服务、Pi 登录适配和 Gmail 流程实现，并生成 Windows 便携包；尚未完成原生 Windows 与真实账号端到端验收。完整范围与未完成项见 [实施记录](docs/IMPLEMENTATION.md)。
+Windows 安装版：[前往 GitHub Releases](https://github.com/winbeau/tools-touch/releases)。下载 `ToolsTouch-Setup-*-win-x64.exe` 后双击安装，内置运行环境，无需管理员权限。卸载保留本地研究资料和账户数据；真实账号完整流程仍待验收。
 
-Windows 使用、配置与打包步骤见 [WINDOWS.md](docs/WINDOWS.md)。更新后的便携包目标为 `artifacts/ToolsTouch-win-x64-r2.zip`，内含 .NET、Node 和 Pi 依赖；构建成功不等于已经验证其 Windows 运行行为。逐项证据与缺口见 [ACCEPTANCE.md](docs/ACCEPTANCE.md)。
+已提供六页 WPF、研究服务、Pi 登录适配和 Gmail 流程实现，并补充原生 Windows 桌面回归检查；真实账号端到端验收仍未完成。完整范围与未完成项见 [实施记录](docs/IMPLEMENTATION.md)。
+
+Windows 使用、配置与打包步骤见 [WINDOWS.md](docs/WINDOWS.md)。更新后的便携包目标为 `artifacts/ToolsTouch-win-x64-r3.zip`，内含 .NET、Node 和 Pi 依赖；原生自动检查不等于真实账号完整验收。逐项证据与缺口见 [ACCEPTANCE.md](docs/ACCEPTANCE.md)。
 
 ## 已有核心验证
 
@@ -17,6 +19,14 @@ dotnet run --project tests/ToolsTouch.Core.Tests
 ```
 
 这是使用真实临时 SQLite 数据库的可执行回归测试，失败时返回非零退出码。邮件传输使用测试替身，不发送真实邮件。测试工程可在 Linux 和 Windows 运行；通过不代表 WPF 或 OAuth 已完成验收。
+
+Windows 原生检查（额外需要 Python 3）会保存页面截图和 JSON 结果；所有测试使用隔离资料，不登录或发送真实邮件：
+
+```powershell
+python scripts/test-windows.py --package artifacts/ToolsTouch-win-x64-r3 --output artifacts/windows-check
+```
+
+本次检查 7 组全部通过，包括六页及三个详情子页渲染、草稿编辑与空选择清理、DPAPI 跨进程读取、随包 Pi 状态握手及退出死锁回归。WSL 交叉构建后的运行方法见 [Windows 原生检查](docs/WINDOWS.md#可重复的-windows-原生检查)。
 
 核心回归包含实际 C# ↔ Node/Pi 子进程握手，因此需要先构建 AgentHost。可选的真实来源连通性检查：
 

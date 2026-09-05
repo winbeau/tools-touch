@@ -5,12 +5,13 @@ using ToolsTouch.Core;
 
 namespace ToolsTouch.Desktop;
 
-public sealed class WindowsSecretStore : ISecretStore
+public sealed class WindowsSecretStore(string? dataDirectory = null) : ISecretStore
 {
-    private static string PathFor(string name)
+    private readonly string storageDirectory = Path.GetFullPath(dataDirectory ?? DesktopSettings.DataDirectory);
+    private string PathFor(string name)
     {
         if (name != "gmail") throw new ArgumentException("UNKNOWN_SECRET_NAME");
-        var directory = Path.Combine(DesktopSettings.DataDirectory, "credentials"); Directory.CreateDirectory(directory);
+        var directory = Path.Combine(storageDirectory, "credentials"); Directory.CreateDirectory(directory);
         return Path.Combine(directory, name + ".dpapi");
     }
     public string? Read(string name)
