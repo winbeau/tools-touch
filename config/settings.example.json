@@ -1,0 +1,9 @@
+{
+  "nodePath": "node",
+  "agentHostPath": "C:\\Projects\\tools-touch\\agent-host\\dist\\index.js",
+  "model": "",
+  "maxToolCalls": 30,
+  "stageTimeoutSeconds": 180,
+  "searchKeyFile": "C:\\Private\\brave-api-key.txt",
+  "googleClientFile": "C:\\Private\\google-desktop-client.json"
+}

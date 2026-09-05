@@ -1,0 +1,12 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+.vs/
+artifacts/
+*.db
+*.db-shm
+*.db-wal
+appsettings.local.json
+.tools-touch-pi/
+**/__pycache__/
