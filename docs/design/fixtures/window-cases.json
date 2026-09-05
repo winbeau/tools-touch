@@ -1,0 +1,405 @@
+{
+  "fixture_version": 1,
+  "rule_version": "window-v1",
+  "synthetic": true,
+  "cases": [
+    {
+      "case_id": "W01-historical-upcoming",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-05T10:00:00+08:00",
+      "current": null,
+      "historical": {
+        "cycle_year": 2025,
+        "start": "2025-09-12",
+        "end": "2025-09-18",
+        "precision": "Date"
+      },
+      "expected": {
+        "actual_state": "Unknown",
+        "actual_basis": "NoCurrentEvidence",
+        "estimated_phase": "Upcoming",
+        "projected_start": "2026-09-12T00:00:00+08:00",
+        "projected_end_exclusive": "2026-09-19T00:00:00+08:00"
+      }
+    },
+    {
+      "case_id": "W02-historical-within",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-15T10:00:00+08:00",
+      "current": null,
+      "historical": {
+        "cycle_year": 2025,
+        "start": "2025-09-12",
+        "end": "2025-09-18",
+        "precision": "Date"
+      },
+      "expected": {
+        "actual_state": "Unknown",
+        "actual_basis": "NoCurrentEvidence",
+        "estimated_phase": "WithinEstimatedRange",
+        "projected_start": "2026-09-12T00:00:00+08:00",
+        "projected_end_exclusive": "2026-09-19T00:00:00+08:00"
+      }
+    },
+    {
+      "case_id": "W03-historical-passed",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-20T10:00:00+08:00",
+      "current": null,
+      "historical": {
+        "cycle_year": 2025,
+        "start": "2025-09-12",
+        "end": "2025-09-18",
+        "precision": "Date"
+      },
+      "expected": {
+        "actual_state": "Unknown",
+        "actual_basis": "NoCurrentEvidence",
+        "estimated_phase": "EstimatePassed",
+        "projected_start": "2026-09-12T00:00:00+08:00",
+        "projected_end_exclusive": "2026-09-19T00:00:00+08:00"
+      }
+    },
+    {
+      "case_id": "W04-current-upcoming",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-05T02:00:00Z",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentOfficial",
+        "start": "2026-09-12",
+        "end": "2026-09-18",
+        "precision": "Date"
+      },
+      "historical": null,
+      "expected": {
+        "actual_state": "NotStarted",
+        "actual_basis": "CurrentOfficial",
+        "estimated_phase": "NotAvailable"
+      }
+    },
+    {
+      "case_id": "W05-date-deadline-day",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-18T20:00:00+08:00",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentOfficial",
+        "start": "2026-09-12",
+        "end": "2026-09-18",
+        "precision": "Date"
+      },
+      "historical": null,
+      "expected": {
+        "actual_state": "Open",
+        "actual_basis": "CurrentOfficial",
+        "estimated_phase": "NotAvailable",
+        "end_exclusive": "2026-09-19T00:00:00+08:00"
+      }
+    },
+    {
+      "case_id": "W06-date-deadline-next-day",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-19T00:00:00+08:00",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentOfficial",
+        "start": "2026-09-12",
+        "end": "2026-09-18",
+        "precision": "Date"
+      },
+      "historical": null,
+      "expected": {
+        "actual_state": "Closed",
+        "actual_basis": "CurrentOfficial",
+        "estimated_phase": "NotAvailable"
+      }
+    },
+    {
+      "case_id": "W07-instant-boundary",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-18T17:00:00+08:00",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentOfficial",
+        "start": "2026-09-12T09:00:00+08:00",
+        "end": "2026-09-18T17:00:00+08:00",
+        "precision": "Instant"
+      },
+      "historical": null,
+      "expected": {
+        "actual_state": "Closed",
+        "actual_basis": "CurrentOfficial",
+        "estimated_phase": "NotAvailable"
+      }
+    },
+    {
+      "case_id": "W08-current-over-history",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-05T10:00:00+08:00",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentOfficial",
+        "start": "2026-09-01",
+        "end": "2026-09-03",
+        "precision": "Date"
+      },
+      "historical": {
+        "cycle_year": 2025,
+        "start": "2025-09-12",
+        "end": "2025-09-18",
+        "precision": "Date"
+      },
+      "expected": {
+        "actual_state": "Closed",
+        "actual_basis": "CurrentOfficial",
+        "estimated_phase": "NotAvailable"
+      }
+    },
+    {
+      "case_id": "W09-only-future-end",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-05T10:00:00+08:00",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentOfficial",
+        "start": null,
+        "end": "2026-09-18",
+        "precision": "Date"
+      },
+      "historical": null,
+      "expected": {
+        "actual_state": "Unknown",
+        "actual_basis": "CurrentOfficial",
+        "estimated_phase": "NotAvailable"
+      }
+    },
+    {
+      "case_id": "W10-only-future-start",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-05T10:00:00+08:00",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentOfficial",
+        "start": "2026-09-12",
+        "end": null,
+        "precision": "Date"
+      },
+      "historical": null,
+      "expected": {
+        "actual_state": "NotStarted",
+        "actual_basis": "CurrentOfficial",
+        "estimated_phase": "NotAvailable"
+      }
+    },
+    {
+      "case_id": "W11-only-past-start",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-15T10:00:00+08:00",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentOfficial",
+        "start": "2026-09-12",
+        "end": null,
+        "precision": "Date"
+      },
+      "historical": null,
+      "expected": {
+        "actual_state": "Unknown",
+        "actual_basis": "CurrentOfficial",
+        "estimated_phase": "NotAvailable"
+      }
+    },
+    {
+      "case_id": "W12-invalid-range",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-15T10:00:00+08:00",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentOfficial",
+        "start": "2026-09-18",
+        "end": "2026-09-12",
+        "precision": "Date"
+      },
+      "historical": null,
+      "expected": {
+        "actual_state": "Conflict",
+        "actual_basis": "CurrentOfficial",
+        "estimated_phase": "NotAvailable",
+        "required_reason": "INVALID_DATE_RANGE"
+      }
+    },
+    {
+      "case_id": "W13-cross-year-projection",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-12-30T10:00:00+08:00",
+      "current": null,
+      "historical": {
+        "cycle_year": 2025,
+        "start": "2025-12-28",
+        "end": "2026-01-03",
+        "precision": "Date"
+      },
+      "expected": {
+        "actual_state": "Unknown",
+        "actual_basis": "NoCurrentEvidence",
+        "estimated_phase": "WithinEstimatedRange",
+        "projected_start": "2026-12-28T00:00:00+08:00",
+        "projected_end_exclusive": "2027-01-04T00:00:00+08:00"
+      }
+    },
+    {
+      "case_id": "W14-leap-unprojectable",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-02-01T10:00:00+08:00",
+      "current": null,
+      "historical": {
+        "cycle_year": 2024,
+        "start": "2024-02-29",
+        "end": "2024-03-02",
+        "precision": "Date"
+      },
+      "expected": {
+        "actual_state": "Unknown",
+        "actual_basis": "NoCurrentEvidence",
+        "estimated_phase": "Unprojectable",
+        "projected_start": null,
+        "projected_end_exclusive": null,
+        "required_reason": "INVALID_PROJECTED_DATE"
+      }
+    },
+    {
+      "case_id": "W15-no-evidence",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-05T10:00:00+08:00",
+      "current": null,
+      "historical": null,
+      "expected": {
+        "actual_state": "Unknown",
+        "actual_basis": "NoCurrentEvidence",
+        "estimated_phase": "NotAvailable"
+      }
+    },
+    {
+      "case_id": "W16-cancelled",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-05T10:00:00+08:00",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentOfficial",
+        "start": null,
+        "end": null,
+        "precision": "Date",
+        "explicit_status": "Cancelled",
+        "status_observed_at": "2026-09-05T08:00:00+08:00",
+        "status_valid_until": "2026-09-06T08:00:00+08:00"
+      },
+      "historical": null,
+      "expected": {
+        "actual_state": "Cancelled",
+        "actual_basis": "CurrentOfficial",
+        "estimated_phase": "NotAvailable"
+      }
+    },
+    {
+      "case_id": "W17-conflicting-officials",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-15T10:00:00+08:00",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentOfficial",
+        "start": "2026-09-12",
+        "end": "2026-09-18",
+        "precision": "Date",
+        "has_conflict": true
+      },
+      "historical": null,
+      "expected": {
+        "actual_state": "Conflict",
+        "actual_basis": "CurrentOfficial",
+        "estimated_phase": "NotAvailable",
+        "required_reason": "CONFLICTING_CURRENT_EVIDENCE"
+      }
+    },
+    {
+      "case_id": "W18-current-missing-dates",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-15T10:00:00+08:00",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentOfficial",
+        "start": null,
+        "end": null,
+        "precision": "Date"
+      },
+      "historical": {
+        "cycle_year": 2025,
+        "start": "2025-09-12",
+        "end": "2025-09-18",
+        "precision": "Date"
+      },
+      "expected": {
+        "actual_state": "Unknown",
+        "actual_basis": "CurrentOfficial",
+        "estimated_phase": "NotAvailable"
+      }
+    },
+    {
+      "case_id": "W19-same-instant-other-offset",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-18T05:00:00-07:00",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentOfficial",
+        "start": "2026-09-12",
+        "end": "2026-09-18",
+        "precision": "Date"
+      },
+      "historical": null,
+      "expected": {
+        "actual_state": "Open",
+        "actual_basis": "CurrentOfficial",
+        "estimated_phase": "NotAvailable",
+        "end_exclusive": "2026-09-19T00:00:00+08:00"
+      }
+    },
+    {
+      "case_id": "W20-current-aggregator",
+      "target_cycle_year": 2026,
+      "time_zone": "Asia/Shanghai",
+      "as_of": "2026-09-15T10:00:00+08:00",
+      "current": {
+        "cycle_year": 2026,
+        "basis": "CurrentAggregator",
+        "start": "2026-09-12",
+        "end": "2026-09-18",
+        "precision": "Date"
+      },
+      "historical": null,
+      "expected": {
+        "actual_state": "Open",
+        "actual_basis": "CurrentAggregator",
+        "estimated_phase": "NotAvailable"
+      }
+    }
+  ]
+}

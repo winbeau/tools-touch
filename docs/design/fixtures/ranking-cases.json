@@ -1,0 +1,205 @@
+{
+  "fixture_version": 1,
+  "algorithm_version": "rank-v1",
+  "synthetic": true,
+  "tolerance": 1e-9,
+  "score_cases": [
+    {
+      "case_id": "R01-all-known",
+      "components": [
+        {
+          "key": "a",
+          "weight": 0.5,
+          "score": 0.8
+        },
+        {
+          "key": "b",
+          "weight": 0.3,
+          "score": 0.6
+        },
+        {
+          "key": "c",
+          "weight": 0.2,
+          "score": 1
+        }
+      ],
+      "expected": {
+        "known_score": 78,
+        "coverage": 1,
+        "lower": 78,
+        "upper": 78,
+        "evidence_bucket": "Sufficient"
+      }
+    },
+    {
+      "case_id": "R02-partly-known",
+      "components": [
+        {
+          "key": "a",
+          "weight": 0.5,
+          "score": 0.8
+        },
+        {
+          "key": "b",
+          "weight": 0.3,
+          "score": 0.6
+        },
+        {
+          "key": "c",
+          "weight": 0.2,
+          "score": null
+        }
+      ],
+      "expected": {
+        "known_score": 72.5,
+        "coverage": 0.8,
+        "lower": 58,
+        "upper": 78,
+        "evidence_bucket": "Sufficient"
+      }
+    },
+    {
+      "case_id": "R03-insufficient",
+      "components": [
+        {
+          "key": "a",
+          "weight": 0.5,
+          "score": 0.9
+        },
+        {
+          "key": "b",
+          "weight": 0.5,
+          "score": null
+        }
+      ],
+      "expected": {
+        "known_score": 90,
+        "coverage": 0.5,
+        "lower": 45,
+        "upper": 95,
+        "evidence_bucket": "Insufficient"
+      }
+    },
+    {
+      "case_id": "R04-all-unknown",
+      "components": [
+        {
+          "key": "a",
+          "weight": 0.5,
+          "score": null
+        },
+        {
+          "key": "b",
+          "weight": 0.5,
+          "score": null
+        }
+      ],
+      "expected": {
+        "known_score": null,
+        "coverage": 0,
+        "lower": 0,
+        "upper": 100,
+        "evidence_bucket": "Insufficient"
+      }
+    },
+    {
+      "case_id": "R05-known-zero",
+      "components": [
+        {
+          "key": "a",
+          "weight": 1,
+          "score": 0
+        }
+      ],
+      "expected": {
+        "known_score": 0,
+        "coverage": 1,
+        "lower": 0,
+        "upper": 0,
+        "evidence_bucket": "Sufficient"
+      }
+    }
+  ],
+  "rejection_cases": [
+    {
+      "case_id": "R06-invalid-weights",
+      "components": [
+        {
+          "key": "a",
+          "weight": 0.4,
+          "score": 0.5
+        },
+        {
+          "key": "b",
+          "weight": 0.4,
+          "score": 0.5
+        }
+      ],
+      "expected_error": "INVALID_WEIGHT_PROFILE"
+    },
+    {
+      "case_id": "R07-invalid-score",
+      "components": [
+        {
+          "key": "a",
+          "weight": 1,
+          "score": 1.2
+        }
+      ],
+      "expected_error": "INVALID_COMPONENT_SCORE"
+    }
+  ],
+  "sort_case": {
+    "candidates": [
+      {
+        "target_id": "B",
+        "eligibility": "Eligible",
+        "coverage": 0.5,
+        "lower": 45,
+        "known_score": 90,
+        "source_quality": 2
+      },
+      {
+        "target_id": "D",
+        "eligibility": "Ineligible",
+        "coverage": 1,
+        "lower": 99,
+        "known_score": 99,
+        "source_quality": 3
+      },
+      {
+        "target_id": "C",
+        "eligibility": "NeedsVerification",
+        "coverage": 1,
+        "lower": 95,
+        "known_score": 95,
+        "source_quality": 3
+      },
+      {
+        "target_id": "A2",
+        "eligibility": "Eligible",
+        "coverage": 1,
+        "lower": 78,
+        "known_score": 78,
+        "source_quality": 3
+      },
+      {
+        "target_id": "A1",
+        "eligibility": "Eligible",
+        "coverage": 1,
+        "lower": 78,
+        "known_score": 78,
+        "source_quality": 3
+      }
+    ],
+    "expected_recommended_display_order": [
+      "A1",
+      "A2",
+      "B",
+      "C"
+    ],
+    "expected_excluded": [
+      "D"
+    ]
+  }
+}

@@ -54,6 +54,13 @@ def main():
     native = module_from_spec(spec)
     spec.loader.exec_module(native)
     checks = []
+    data_root = Path(os.environ.get("LOCALAPPDATA", tempfile.gettempdir())) / "ToolsTouch"
+    data_root.mkdir(parents=True, exist_ok=True)
+    data_sentinel = data_root / f"installer-check-{uuid.uuid4().hex}.json"
+    legacy_database = data_root / "database" / f"installer-check-{uuid.uuid4().hex}.db"
+    data_sentinel.write_text("Keep user workspace data.", encoding="utf-8")
+    legacy_database.parent.mkdir(parents=True, exist_ok=True)
+    legacy_database.write_bytes(b"legacy database fixture")
     with tempfile.TemporaryDirectory(prefix="ttinst-") as temporary:
         workspace = Path(temporary)
         target = workspace / "installed"
@@ -83,11 +90,17 @@ def main():
                 raise RuntimeError("Repeat installation did not repair the program file")
             if not sentinel.is_file():
                 raise RuntimeError("Repeat installation deleted an untracked user file")
+            if data_sentinel.read_text(encoding="utf-8") != "Keep user workspace data." or legacy_database.read_bytes() != b"legacy database fixture":
+                raise RuntimeError("Repeat installation modified user workspace data")
             checks.append("repeat installation repairs files and preserves user-created files")
             print("PASS: repeat installation repair and user file preservation", flush=True)
+            python = target / "python/python.exe"
+            run([str(python), "-c", "import httpx, openpyxl, tools_touch_collector; print('collector-runtime-ok')"], workspace, 30)
+            checks.append("bundled Python runtime imports collector and production dependencies")
+            print("PASS: bundled Python runtime imports collector and production dependencies", flush=True)
             runtime = workspace / "tests"
             native.copy_tree(args.test_exe.resolve().parent, runtime)
-            for name in ("ToolsTouch.dll", "ToolsTouch.Core.dll"):
+            for name in ("ToolsTouch.dll", "ToolsTouch.Core.dll", "ToolsTouch.Application.dll", "ToolsTouch.Infrastructure.dll"):
                 if (runtime / name).read_bytes() != (target / name).read_bytes():
                     raise RuntimeError("Desktop test assembly differs from installed assembly: " + name)
             run([str(runtime / "ToolsTouch.Desktop.Tests.exe"), "--output", str(output / "desktop"),
@@ -106,7 +119,11 @@ def main():
                 raise RuntimeError("Uninstall did not remove installed program and registration")
         if sentinel.read_text(encoding="utf-8") != "Keep user-created files.":
             raise RuntimeError("Uninstall removed an untracked user file")
+        if data_sentinel.read_text(encoding="utf-8") != "Keep user workspace data." or legacy_database.read_bytes() != b"legacy database fixture":
+            raise RuntimeError("Uninstall removed user workspace data")
         checks.append("uninstall removes application and registry entry while preserving user-created files")
+        data_sentinel.unlink()
+        legacy_database.unlink()
         report = {"passed": True, "installerSha256": hashlib.sha256(installer.read_bytes()).hexdigest(),
                   "checks": checks, "realAccountsUsed": False, "realMailSent": False}
         (output / "results.json").write_text(json.dumps(report, indent=2), encoding="utf-8")

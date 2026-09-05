@@ -61,7 +61,9 @@ def main():
             prefix = manifest_name.rsplit("/", 1)[0] + "/"
             manifest_bytes = archive.read(manifest_name)
             manifest = json.loads(manifest_bytes)
-            required = {"ToolsTouch.exe", "ToolsTouch.dll", "ToolsTouch.Core.dll", "node/node.exe", "agent-host/dist/index.js"}
+            required = {"ToolsTouch.exe", "ToolsTouch.dll", "ToolsTouch.Core.dll", "node/node.exe",
+                        "agent-host/dist/index.js", "python/python.exe", "python/python312.dll",
+                        "python/Lib/site-packages/tools_touch_collector/__main__.py"}
             if manifest.get("platform") != "win-x64" or not required.issubset(manifest["files"]):
                 raise SystemExit("Incomplete Windows x64 portable package")
             # Extract only manifest-listed, verified files; do not include arbitrary local files.

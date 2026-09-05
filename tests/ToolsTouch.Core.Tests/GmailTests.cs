@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using MimeKit;
+using ToolsTouch.Application;
 using ToolsTouch.Core;
 
 static class GmailTests
@@ -56,6 +57,7 @@ static class GmailTests
         var statusCode = HttpStatusCode.OK;
         string? rfcMessageId = null;
         var found = false;
+        var multipleMatches = false;
         var sends = 0;
         using var apiHttp = new HttpClient(new Handler(async request =>
         {
@@ -69,12 +71,14 @@ static class GmailTests
                 Check(!raw.Contains('+') && !raw.Contains('/'), "base64url encoded MIME");
                 var decoded = raw.Replace('-', '+').Replace('_', '/'); decoded += new string('=', (4 - decoded.Length % 4) % 4);
                 using var message = MimeMessage.Load(new MemoryStream(Convert.FromBase64String(decoded)));
-                Check(message.To.Mailboxes.Single().Address == "recipient@example.org" && message.Subject == "研究合作", "MIME recipient and Unicode subject round trip");
+                Check(message.To.Mailboxes.Single().Address == "recipient@example.org" &&
+                    (message.Subject == "研究合作" || message.Subject == "Fixed MIME"), "MIME recipient and subject round trip");
                 rfcMessageId = message.MessageId;
                 return Json(new { id = "sent-message", threadId = "sent-thread" }, statusCode);
             }
             if (request.RequestUri!.AbsolutePath.EndsWith("/messages"))
-                return Json(new { messages = found ? new[] { new { id = "sent-message" } } : [] });
+                return multipleMatches ? Json(new { messages = new[] { new { id = "sent-message" }, new { id = "sent-message-duplicate" } } }) :
+                    Json(new { messages = found ? new[] { new { id = "sent-message" } } : [] });
             if (request.RequestUri.AbsolutePath.Contains("/messages/"))
                 return Json(new { id = "sent-message", threadId = "sent-thread", labelIds = new[] { "SENT" }, payload = new { headers = new[] { new { name = "Message-ID", value = "<" + rfcMessageId + ">" }, new { name = "To", value = "recipient@example.org" } } } });
             return Json(new { messages = new[]
@@ -89,9 +93,25 @@ static class GmailTests
         try { await outreach.SendAsync(draft.Id, gmail, senderAccount: auth.Account); throw new Exception("Expected 500"); } catch (HttpRequestException) { }
         Check(outreach.Get(draft.Id).State == "Unknown" && sends == 1, "5xx has ambiguous outcome with no retry");
         Check(!await outreach.ReconcileAsync(draft.Id, gmail) && outreach.Get(draft.Id).State == "Unknown", "not found does not prove non-delivery");
+        var notFoundCheck = outreach.DeliveryChecks(draft.Id).Single();
+        Check(notFoundCheck.Outcome == "NotFound" && notFoundCheck.SenderAccount == "sender@example.org", "not-found reconciliation is recorded against the original sender account");
+        var ambiguousDraft = outreach.CreateDraft("prof", "recipient@example.org", "Ambiguous subject", "Ambiguous body", null, "gmail-ambiguous");
+        var ambiguousSnapshot = new SendSnapshot(ambiguousDraft.Id, ambiguousDraft.Recipient, ambiguousDraft.Subject, ambiguousDraft.Body, null, null, null, rfcMessageId!);
+        using (var connection = database.Open())
+        using (var update = LocalDatabase.Command(connection, "UPDATE Outreach SET State='Unknown',SenderAccount=$account,SnapshotJson=$snapshot WHERE Id=$id", ("$account", "sender@example.org"), ("$snapshot", JsonSerializer.Serialize(ambiguousSnapshot)), ("$id", ambiguousDraft.Id)))
+            update.ExecuteNonQuery();
+        multipleMatches = true;
+        Check(!await outreach.ReconcileAsync(ambiguousDraft.Id, gmail) && outreach.Get(ambiguousDraft.Id).State == "Unknown" &&
+            outreach.DeliveryChecks(ambiguousDraft.Id).Single().Outcome == "Ambiguous", "multiple Sent candidates remain unresolved");
+        multipleMatches = false;
         found = true;
         Check(await outreach.ReconcileAsync(draft.Id, gmail) && outreach.Get(draft.Id).State == "Sent", "matching sent MIME message reconciles unknown result");
         Check(await outreach.SyncRepliesAsync(gmail) == 1 && outreach.ReplyCount() == 1, "reply thread persisted");
+        var replyMessages = outreach.ReplyMessages(draft.Id);
+        Check(replyMessages.Any(message => message.IsSelf && message.RelationState == "Sent") &&
+            replyMessages.Any(message => !message.IsSelf && message.RelationState == "Reply" && message.Account == "sender@example.org"),
+            "reply persistence keeps account, thread, self-message filtering and references");
+        Check(await outreach.ReconcileAsync(ambiguousDraft.Id, gmail) && outreach.Get(ambiguousDraft.Id).State == "Sent", "later unique match resolves an ambiguous check");
         Check(outreach.History("prof").Any(item => item.Id == draft.Id && item.State == "Sent" && item.ReplyState == "Replied"), "professor history joins account-scoped reply state");
         var rejected = outreach.CreateDraft("prof", "recipient@example.org", "研究合作", "Hello", null, "gmail-rejected");
         statusCode = HttpStatusCode.BadRequest;
@@ -101,6 +121,12 @@ static class GmailTests
         try { await outreach.SendAsync(revised.Id, gmail, expectedRevision: rejected.Revision); throw new Exception("Expected stale review failure"); }
         catch (InvalidOperationException error) when (error.Message == "DRAFT_CHANGED_REVIEW_REQUIRED") { }
         Check(sends == 2, "stale review does not dispatch another message");
+        statusCode = HttpStatusCode.OK;
+        var fixedMime = MimeComposer.Build(new MimeEnvelope("sender@example.org", "recipient@example.org", "Fixed MIME", "Fixed body",
+            "<fixed-message-id@tools-touch.local>", DateTimeOffset.UtcNow));
+        var fixedReceipt = await gmail.SendAsync(new SendEnvelope("attempt-fixed", "sender@example.org", "<fixed-message-id@tools-touch.local>",
+            "fixed-artifact", Convert.ToHexString(SHA256.HashData(fixedMime)), fixedMime), default);
+        Check(fixedReceipt.MessageId == "sent-message" && rfcMessageId == "fixed-message-id@tools-touch.local", "Gmail adapter transmits the prebuilt immutable MIME envelope");
         Console.WriteLine("PASS: simulated Google OAuth callback/state/PKCE, scoped credential persistence, MIME, Gmail failure classification, reconciliation, reply sync, stale send review. No real mail sent.");
     }
     private static Dictionary<string, string> Query(string value) => value.Split('&').Select(part => part.Split('=', 2)).ToDictionary(parts => Uri.UnescapeDataString(parts[0]), parts => Uri.UnescapeDataString(parts[1].Replace('+', ' ')));

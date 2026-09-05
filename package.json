@@ -1,0 +1,13 @@
+{
+  "name": "tools-touch",
+  "private": true,
+  "packageManager": "pnpm@10.14.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "agent:check": "pnpm --filter tools-touch-agent-host check",
+    "agent:test": "pnpm --filter tools-touch-agent-host test",
+    "agent:build": "pnpm --filter tools-touch-agent-host build"
+  }
+}

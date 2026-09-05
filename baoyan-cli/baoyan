@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+BAOYAN_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+WORKSPACE_DIR=$(CDPATH= cd -- "$BAOYAN_DIR/.." && pwd)
+if [ -x "$WORKSPACE_DIR/.venv/bin/python" ]; then
+  exec "$WORKSPACE_DIR/.venv/bin/python" "$BAOYAN_DIR/baoyan.py" "$@"
+fi
+exec "$BAOYAN_DIR/.venv/bin/python" "$BAOYAN_DIR/baoyan.py" "$@"

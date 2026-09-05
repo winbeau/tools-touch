@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createResources } from "./resources.js";
-import { createTools, toolNames, validateTool } from "./tools.js";
+import { createTools, policyTools, toolNames, validateTool } from "./tools.js";
 import { parseOutput } from "./outputs.js";
 import { createBusinessSession } from "./session.js";
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
@@ -16,11 +16,21 @@ test("exact business allowlist excludes sending, shell and arbitrary file access
   for (const name of ["send_email", "gmail.send", "bash", "read", "__proto__"])
     assert.throws(() => validateTool(name, {}), /TOOL_NOT_ALLOWED/);
 });
+test("policy tool sets are least privilege and keep draft creation isolated", () => {
+  assert.equal((policyTools.research as readonly string[]).includes("create_outreach_draft"), false);
+  assert.equal((policyTools.analysis as readonly string[]).includes("save_professor"), false);
+  assert.equal((policyTools.draft as readonly string[]).includes("create_outreach_draft"), true);
+  assert.equal((policyTools.draft as readonly string[]).includes("save_professor"), false);
+  assert.deepEqual(policyTools.semantic, policyTools.analysis);
+});
 test("stage results require structured contracts and reject prose or invented fields", () => {
   assert.deepEqual(parseOutput("research", '{"summary":"Found evidence","professor_ids":["p"],"paper_ids":[]}'), { summary: "Found evidence", professor_ids: ["p"], paper_ids: [] });
   assert.throws(() => parseOutput("research", "I found three professors. Done!"), /INVALID_STAGE_OUTPUT/);
   assert.throws(() => parseOutput("draft", '{"draft_id":"d","send":true}'), /INVALID_STAGE_OUTPUT/);
   assert.throws(() => parseOutput("analysis", '{"professor_id":"p","research_summary":"test","personal_match":null,"paper_ids":[],"evidence":[]}'), /INVALID_STAGE_OUTPUT/);
+  const semantic = parseOutput("semantic", '{"candidate_scope_id":"scope","evaluations":[{"target_kind":"ProfessorAppointment","target_id":"p","components":[{"key":"direction","score":0.75,"citations":[{"evidence_id":"e1","url":"https://example.org/p","claim":"Relevant work"}]}]}]}') as { candidate_scope_id: string };
+  assert.equal(semantic.candidate_scope_id, "scope");
+  assert.throws(() => parseOutput("semantic", '{"candidate_scope_id":"scope","evaluations":[{"target_kind":"ProfessorAppointment","target_id":"p","components":[{"key":"direction","score":0.75,"citations":[]}]}]}'), /INVALID_STAGE_OUTPUT/);
 });
 test("schemas reject hidden instructions via fields, invalid limits and arbitrary file paths", () => {
   validateTool("search_web", { query: "world model professor", limit: 5 });
@@ -71,7 +81,10 @@ test("actual host process starts with isolated Pi storage and returns only publi
     const timeout = setTimeout(() => child.kill(), 15000);
     child.stdout.setEncoding("utf8").on("data", chunk => { output += chunk; });
     child.stderr.setEncoding("utf8").on("data", chunk => { errors += chunk; });
-    child.stdin.end(JSON.stringify({ type: "status", id: "status-1" }) + "\n" + JSON.stringify({ type: "send_email", id: "forbidden" }) + "\n");
+    child.stdin.end(JSON.stringify({ protocol_version: 2, type: "status", id: "status-1" }) + "\n" +
+      JSON.stringify({ protocol_version: 2, type: "send_email", id: "forbidden" }) + "\n" +
+      JSON.stringify({ protocol_version: 1, type: "status", id: "old-version" }) + "\n" +
+      JSON.stringify({ protocol_version: 2, type: "cancel_run", id: "stale-cancel", run_id: "run", stage_key: "stage", attempt_id: "old-attempt" }) + "\n");
     const code = await new Promise<number | null>((resolve, reject) => {
       child.once("exit", resolve);
       child.once("error", reject);
@@ -79,10 +92,33 @@ test("actual host process starts with isolated Pi storage and returns only publi
     assert.equal(code, 0, errors);
     const messages = output.trim().split("\n").map(line => JSON.parse(line));
     assert.equal(messages[0].type, "ready");
+    assert.equal(messages[0].protocol_version, 2);
+    assert.deepEqual(messages[0].supported_policies.sort(), ["analysis", "draft", "research", "semantic"]);
     const status = messages.find(message => message.id === "status-1");
     assert.equal(status.data.configured, false);
+    const codex = status.data.providers.find((provider: any) => provider.id === "openai-codex");
+    assert.equal(codex.state, "Disconnected");
+    assert.equal(codex.verified, false);
+    assert.deepEqual(codex.auth_methods, [{ id: "oauth", requires_secret: false, interactive: true }]);
+    assert.equal(codex.last_validated_at, null);
     assert.ok(status.data.models.length > 0);
-    assert.deepEqual(Object.keys(status.data).sort(), ["busy", "configured", "models", "provider", "providers"]);
+    assert.deepEqual(Object.keys(status.data).sort(), ["active_run", "busy", "configured", "host_version", "models", "output_schema_version", "pi_version", "provider", "providers"]);
     assert.ok(messages.some(message => message.code === "INVALID_COMMAND"));
+    assert.ok(messages.some(message => message.id === "stale-cancel" && message.code === "RUN_TARGET_NOT_ACTIVE"));
+    assert.ok(messages.some(message => message.code === "INVALID_COMMAND"));
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test("host rejects an over-limit UTF-8 frame before parsing it", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "tools-touch-frame-limit-"));
+  try {
+    const child = spawn(process.execPath, [fileURLToPath(new URL("./index.js", import.meta.url)), directory], { stdio: "pipe" });
+    let output = "";
+    child.stdout.setEncoding("utf8").on("data", chunk => { output += chunk; });
+    const timeout = setTimeout(() => child.kill(), 15000);
+    child.stdin.end(JSON.stringify({ protocol_version: 2, type: "status", id: "too-large", provider: "x".repeat(1_048_600) }) + "\n");
+    const code = await new Promise<number | null>((resolve, reject) => { child.once("exit", resolve); child.once("error", reject); }).finally(() => clearTimeout(timeout));
+    assert.equal(code, 1);
+    assert.ok(output.split("\n").some(line => line && JSON.parse(line).code === "AGENT_FRAME_TOO_LARGE"));
   } finally { await rm(directory, { recursive: true, force: true }); }
 });

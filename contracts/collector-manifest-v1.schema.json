@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools-touch.local/contracts/collector-manifest-v1.schema.json",
+  "title": "Tools Touch baoyan collector manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source", "adapter_version", "scope", "fetched_at", "complete", "counts", "files"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "source": {"const": "baoyan"},
+    "adapter_version": {"type": "string", "minLength": 1},
+    "scope": {"$ref": "#/$defs/scope"},
+    "fetched_at": {"type": "string", "format": "date-time"},
+    "complete": {"const": true},
+    "counts": {"$ref": "#/$defs/counts"},
+    "files": {
+      "type": "array",
+      "minItems": 2,
+      "items": {"$ref": "#/$defs/file"},
+      "contains": {"type": "object", "properties": {"path": {"const": "records.jsonl"}, "kind": {"const": "records"}}, "required": ["path", "kind"]}
+    }
+  },
+  "$defs": {
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["school", "kind", "year"],
+      "properties": {
+        "school": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["全部", "夏令营", "预推免"]},
+        "year": {"anyOf": [{"type": "null"}, {"type": "integer", "minimum": 1900, "maximum": 2200}]}
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scanned", "expected", "selected"],
+      "properties": {
+        "scanned": {"type": "integer", "minimum": 0},
+        "expected": {"anyOf": [{"type": "null"}, {"type": "integer", "minimum": 0}]},
+        "selected": {"type": "integer", "minimum": 0}
+      }
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "byte_length", "kind"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "byte_length": {"type": "integer", "minimum": 0},
+        "kind": {"enum": ["records", "raw"]}
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["external_id", "school", "department", "source_year", "kind", "title", "registration_start_raw", "registration_end_raw", "event_start_raw", "event_end_raw", "official_url", "application_url", "source_url", "raw_ref"],
+      "properties": {
+        "external_id": {"type": "string", "minLength": 1},
+        "school": {"type": "string", "minLength": 1},
+        "department": {"anyOf": [{"type": "null"}, {"type": "string"}]},
+        "source_year": {"anyOf": [{"type": "null"}, {"type": "integer", "minimum": 1900, "maximum": 2200}]},
+        "kind": {"enum": ["SummerCamp", "PreRecommendation", "PreRecommendation|SummerCamp"]},
+        "title": {"type": "string", "minLength": 1},
+        "registration_start_raw": {"anyOf": [{"type": "null"}, {"type": "string"}]},
+        "registration_end_raw": {"anyOf": [{"type": "null"}, {"type": "string"}]},
+        "event_start_raw": {"anyOf": [{"type": "null"}, {"type": "string"}]},
+        "event_end_raw": {"anyOf": [{"type": "null"}, {"type": "string"}]},
+        "official_url": {"anyOf": [{"type": "null"}, {"type": "string", "pattern": "^https?://"}]},
+        "application_url": {"anyOf": [{"type": "null"}, {"type": "string", "pattern": "^https?://"}]},
+        "source_url": {"type": "string", "pattern": "^https?://"},
+        "raw_ref": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path"],
+          "properties": {
+            "path": {"type": "string", "pattern": "^raw/[^./].*"},
+            "json_pointer": {"type": "string", "pattern": "^/"}
+          }
+        }
+      }
+    }
+  }
+}

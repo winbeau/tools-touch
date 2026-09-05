@@ -1,0 +1,85 @@
+name: Build and verify
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['site/**', '.github/workflows/pages.yml']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.16.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm --filter tools-touch-agent-host check
+      - run: pnpm --filter tools-touch-agent-host test
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: 0.9.17
+          python-version: 3.12.12
+      - run: uv sync --all-packages --locked
+      - run: uv run --all-packages --locked python -m unittest discover -s baoyan-cli -p 'test_*.py'
+      - run: uv run --all-packages --locked python -m unittest discover -s collector-host/tests -p 'test_*.py'
+
+  core:
+    runs-on: ubuntu-latest
+    needs: [node]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.16.0
+          cache: pnpm
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.400
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm --filter tools-touch-agent-host build
+      - run: dotnet run --project tests/ToolsTouch.Core.Tests
+
+  windows-package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.16.0
+          cache: pnpm
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: 0.9.17
+          python-version: 3.12.12
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.400
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: uv sync --all-packages --locked
+      - run: uv run --all-packages --locked python scripts/package.py --output artifacts/ci-package
+      - run: uv run --all-packages --locked python scripts/verify-package.py artifacts/ci-package

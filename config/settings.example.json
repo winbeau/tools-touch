@@ -1,5 +1,6 @@
 {
   "nodePath": "node",
+  "pythonPath": "python",
   "agentHostPath": "C:\\Projects\\tools-touch\\agent-host\\dist\\index.js",
   "model": "",
   "provider": "openai-codex",

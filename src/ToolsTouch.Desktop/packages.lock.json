@@ -82,14 +82,25 @@
         "resolved": "10.0.0",
         "contentHash": "UPWqLSygJlFerRi9XNIuM0a1VC8gHUIufyP24xQ0sc+XimqUAEcjpOz9DhKpyDjH+5B/wO3RpC0KpkEeDj/ddg=="
       },
+      "toolstouch.application": {
+        "type": "Project",
+        "dependencies": {
+          "ToolsTouch.Core": "[1.0.0, )"
+        }
+      },
       "toolstouch.core": {
+        "type": "Project"
+      },
+      "toolstouch.infrastructure": {
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.7.3, )",
           "Microsoft.Data.Sqlite": "[10.0.9, )",
           "MimeKit": "[4.17.0, )",
           "PdfPig": "[0.1.16, )",
-          "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.13, )"
+          "SQLitePCLRaw.bundle_e_sqlite3": "[2.1.13, )",
+          "ToolsTouch.Application": "[1.0.0, )",
+          "ToolsTouch.Core": "[1.0.0, )"
         }
       }
     },

@@ -6,22 +6,25 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
+using ToolsTouch.Application;
 using ToolsTouch.Core;
 
 namespace ToolsTouch.Desktop;
 
 public sealed partial class MainViewModel : Observable, IAsyncDisposable
 {
+    private readonly AppServices services;
     private readonly LocalDatabase database;
     private readonly ResearchStore store;
     private readonly LibraryService library;
     private readonly OutreachService outreach;
-    private readonly GmailAuth gmailAuth;
+    private readonly SendCoordinator sendCoordinator;
+    private readonly IGmailAccountPort gmailAuth;
     private readonly GmailService gmail;
+    private readonly PublicWeb web;
     private CancellationTokenSource? gmailCancellation;
     private bool mailBusy;
-    private readonly PublicWeb web = new();
-    private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(40) };
+    private readonly HttpClient http;
     private AgentBridge? bridge;
     private DiscoveryService? discovery;
     private CancellationTokenSource? taskCancellation;
@@ -38,6 +41,11 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
     public ObservableCollection<AgentRun> Runs { get; } = [];
     public ObservableCollection<string> Models { get; } = [];
     public ObservableCollection<string> Activity { get; } = [];
+    public AdmissionWorkspaceViewModel AdmissionWorkspace { get; }
+    public FacultyWorkspaceViewModel FacultyWorkspace { get; }
+    public RecommendationCenterViewModel RecommendationCenter { get; }
+    public ApplicationWorkspaceViewModel ApplicationWorkspace { get; }
+    public RecordGridViewModel RecordGrid { get; }
     private string status = "组件加载中…";
     public string Status { get => status; private set => Set(ref status, value); }
     public string Query { get; set; } = "帮我找做 World Model 的老师";
@@ -93,7 +101,7 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
     public string Interests { get; set; } = "";
     public string Projects { get; set; } = "";
     public string Skills { get; set; } = "";
-    public string Summary => $"导师 {Professors.Count} · 待编辑 {Drafts.Count(d => d.State == "Draft")} · 已发送 {Drafts.Count(d => d.State == "Sent")} · 已回复 {outreach.ReplyCount()} · 待恢复 {Runs.Count(r => r.State is "Partial" or "Failed" or "Cancelled")}";
+    public string Summary => $"导师 {Professors.Count} · 待编辑 {Drafts.Count(d => d.State == "Draft")} · 已发送 {Drafts.Count(d => d.State == "Sent")} · 已回复 {outreach.ReplyCount()} · 待处理 {Runs.Count(r => r.State is "Queued" or "Partial" or "Failed" or "Cancelled")}";
     public ICommand RefreshCommand { get; }
     public ICommand ConnectAgentCommand { get; private set; } = null!;
     public ICommand LoginCommand { get; private set; } = null!;
@@ -122,18 +130,30 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
 
     public MainViewModel(string? dataDirectory = null, HttpClient? accountHttp = null, Action<Uri>? openAccountBrowser = null, Action<string>? copyAccountUrl = null)
     {
-        if (accountHttp != null) http = accountHttp;
+        http = accountHttp ?? new HttpClient { Timeout = TimeSpan.FromSeconds(40) };
         if (openAccountBrowser != null) loginBrowser = openAccountBrowser;
         if (copyAccountUrl != null) copyLoginUrl = copyAccountUrl;
         Settings = DesktopSettings.Load(dataDirectory);
         Directory.CreateDirectory(DataDirectory);
-        diagnostics = new DiagnosticLog(DataDirectory);
-        database = new(Path.Combine(DataDirectory, "tools-touch.db")); database.Initialize();
-        store = new(database); library = new(database, DataDirectory, web); outreach = new(database);
-        gmailAuth = new GmailAuth(http, new WindowsSecretStore(DataDirectory), () => GoogleClient.FromFile(Settings.GoogleClientFile));
-        gmail = new GmailService(http, gmailAuth);
+        services = new AppServices(DataDirectory, http, () => GoogleClient.FromFile(Settings.GoogleClientFile), Settings.PythonPath);
+        diagnostics = services.Diagnostics;
+        database = services.Database;
+        store = services.Store;
+        library = services.Library;
+        outreach = services.Outreach;
+        sendCoordinator = services.SendCoordinator;
+        gmailAuth = services.GmailAuth;
+        gmail = services.Gmail;
+        web = services.Web;
+        AdmissionWorkspace = new AdmissionWorkspaceViewModel(services.AdmissionQueries, ReportError);
+        FacultyWorkspace = new FacultyWorkspaceViewModel(services.FacultyQueries, ReportError);
+        RecommendationCenter = new RecommendationCenterViewModel(services.Recommendations, ReportError);
+        ApplicationWorkspace = new ApplicationWorkspaceViewModel(services.ApplicationCases, ReportError,
+            message => MessageBox.Show(message, "确认申请阶段变更", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes);
+        RecordGrid = new RecordGridViewModel(services.SystemCollections, services.RecordWorkspace, services.FieldSchemas,
+            services.RecordQueries, services.Views, services.Imports, ReportError);
         ConfigureAccounts();
-        store.RecoverInterruptedRuns(); outreach.RecoverInterruptedSends();
+        store.RecoverInterruptedRuns(); outreach.RecoverInterruptedSends(); sendCoordinator.RecoverInterruptedSends();
         UiCommand Command(Func<Task> action, Func<bool>? enabled = null) => new(action, ReportError, () => IsSignedIn && (enabled?.Invoke() ?? true));
         RefreshCommand = Command(() => { Refresh(); return Task.CompletedTask; });
         DiscoverCommand = Command(() => StartTaskAsync("Discover"), () => CanUseModel && !string.IsNullOrWhiteSpace(Query));
@@ -142,7 +162,7 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
         ResumeCommand = Command(async () => { await EnsureAgentAsync(); await ExecuteTaskAsync(SelectedRun!.Id); }, () => CanUseModel && SelectedRun?.State is "Queued" or "Partial" or "Failed" or "Cancelled");
         CancelCommand = Command(CancelCurrentAsync, () => Busy || AuthBusy || mailBusy);
         ViewProfessorCommand = Command(() => { LoadProfessor(); SelectedPage = 3; return Task.CompletedTask; }, () => SelectedProfessor != null);
-        OpenHomepageCommand = Command(() => { OpenUrl(SelectedProfessor!.Homepage); return Task.CompletedTask; }, () => SelectedProfessor != null);
+        OpenHomepageCommand = Command(() => { if (SelectedProfessor?.Homepage is { } homepage) OpenUrl(homepage); return Task.CompletedTask; }, () => SelectedProfessor?.Homepage != null);
         ReadPaperCommand = Command(async () =>
         {
             var paper = SelectedPaper!;
@@ -202,12 +222,13 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
 
     private void OnUi(Action action)
     {
-        if (!disposed && !Application.Current.Dispatcher.HasShutdownStarted) Application.Current.Dispatcher.BeginInvoke(action);
+        if (!disposed && !System.Windows.Application.Current.Dispatcher.HasShutdownStarted) System.Windows.Application.Current.Dispatcher.BeginInvoke(action);
     }
     private async Task StartTaskAsync(string kind)
     {
         await EnsureAgentAsync();
-        var run = discovery!.Create(kind, Query, kind == "Discover" ? null : SelectedProfessor!.Id, Settings.MaxToolCalls, checked(Settings.StageTimeoutSeconds * 1000));
+        var run = discovery!.Create(kind, Query, kind == "Discover" ? null : SelectedProfessor!.Id, Settings.MaxToolCalls,
+            checked(Settings.StageTimeoutSeconds * 1000), Settings.Provider, Settings.Model);
         await ExecuteTaskAsync(run.Id);
         if (kind == "Draft") SelectedPage = 4;
     }
@@ -226,6 +247,11 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
         refreshing = true;
         try
         {
+            AdmissionWorkspace.Refresh();
+            FacultyWorkspace.Refresh();
+            RecommendationCenter.Refresh();
+            ApplicationWorkspace.Refresh();
+            RecordGrid.Refresh();
             Replace(Professors, store.SearchProfessors(ProfessorFilter));
             // Keep an editor's loaded revision until explicit save/reload; stale saves fail optimistically.
             Replace(Drafts, outreach.List().Select(item => item.Id == draft?.Id ? draft : item)); Replace(Runs, store.ListRuns());
@@ -293,10 +319,12 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
         {
             SaveDraft();
             var reviewed = SelectedDraft!;
-            if (MessageBox.Show($"从：{gmail.Account}\n收件人：{reviewed.Recipient}\n主题：{reviewed.Subject}\nCV：{(reviewed.CvPath == null ? "无附件" : Path.GetFileName(reviewed.CvPath))}\n\n确认发送当前已保存的正文与附件？", "确认发送邮件", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
+            var preview = sendCoordinator.Prepare(reviewed.Id, gmail.Account!);
+            if (MessageBox.Show($"从：{preview.SenderAccount}\n收件人：{preview.Recipient}\n主题：{preview.Subject}\n附件：{(preview.AttachmentName == null ? "无附件" : $"{preview.AttachmentName}（{preview.AttachmentBytes} bytes）")}\n\n{preview.Body}\n\n确认发送这份不可变邮件快照？\n确认有效至：{preview.ExpiresAt:HH:mm:ss}", "确认发送邮件", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
             try
             {
-                await outreach.SendAsync(reviewed.Id, gmail, senderAccount: gmail.Account, expectedRevision: reviewed.Revision);
+                var attempt = sendCoordinator.Confirm(preview.ConfirmationId, gmail.Account!);
+                await sendCoordinator.SendAsync(attempt.Id, gmail);
                 Status = "Gmail 已接受发送请求。";
             }
             finally { SelectedDraft = outreach.Get(reviewed.Id); Refresh(); }
@@ -317,6 +345,6 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
     {
         disposed = true; componentCancellation.Cancel(); taskCancellation?.Cancel(); gmailCancellation?.Cancel();
         if (bridge != null) await bridge.DisposeAsync().ConfigureAwait(false);
-        web.Dispose(); http.Dispose();
+        services.Dispose();
     }
 }

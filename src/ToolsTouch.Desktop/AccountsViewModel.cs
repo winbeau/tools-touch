@@ -6,11 +6,12 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
 using Microsoft.Win32;
+using ToolsTouch.Application;
 using ToolsTouch.Core;
+using ToolsTouch.Infrastructure.Pi;
 
 namespace ToolsTouch.Desktop;
 
-public sealed record ModelProvider(string Id, string Name, bool Configured, bool OAuth, bool ApiKey, string[] Models);
 public sealed record AccountOption(string Id, string Label);
 
 public sealed partial class MainViewModel
@@ -31,10 +32,12 @@ public sealed partial class MainViewModel
     private string providerStatus = "请等待组件加载。";
     private string gmailProgress = "点击“使用 Google 登录”，在浏览器中完成授权。";
     private string authPrompt = "";
+    private string? authRequestId;
     private string? authPromptId;
     private string? authUrl;
     private string? lastOpenedAuthUrl;
     private string? gmailAuthUrl;
+    private IModelAccountCatalog? modelCatalog;
     public bool AutoOpenLoginBrowser
     {
         get => Settings.AutoOpenLoginBrowser;
@@ -86,9 +89,16 @@ public sealed partial class MainViewModel
             }
             if (value.ApiKey) LoginMethods.Add(new("api_key", "API Key"));
             SelectedLoginMethod = LoginMethods.FirstOrDefault();
-            foreach (var model in value.Models) Models.Add(model);
+            foreach (var model in value.Models) Models.Add(model.Id);
             if (!Models.Contains(Settings.Model)) Settings.Model = Models.FirstOrDefault() ?? "";
-            ProviderStatus = value.Configured ? "已保存凭据；实际调用可用性以服务商响应为准。" : "尚未连接，请选择授权方式。";
+            ProviderStatus = value.State switch
+            {
+                "Verified" => "最近一次模型请求已验证；后续调用仍以服务商响应为准。",
+                "Configured" => "已保存凭据，尚未完成模型请求验证。",
+                "Authorizing" => "授权正在进行，请完成当前步骤。",
+                "Expired" => "凭据已过期，请重新连接。",
+                _ => "尚未连接，请选择授权方式。"
+            };
             ProviderApiKey = ""; Raise(nameof(Settings)); CommandManager.InvalidateRequerySuggested();
         }
     }
@@ -114,7 +124,7 @@ public sealed partial class MainViewModel
         {
             var value = AuthChoices.Count > 0 ? SelectedAuthChoice?.Id : AuthReply;
             if (string.IsNullOrWhiteSpace(value)) return;
-            await bridge!.RequestAsync(new { type = "auth_reply", id = NewId(), prompt_id = authPromptId, value });
+            await bridge!.RequestAsync(new { type = "auth_reply", id = NewId(), auth_request_id = authRequestId, prompt_id = authPromptId, value });
             AuthReply = ""; Raise(nameof(AuthReply));
         }, () => AuthBusy && authPromptId != null && (AuthChoices.Count > 0 ? SelectedAuthChoice != null : !string.IsNullOrWhiteSpace(AuthReply)));
         CancelAuthCommand = Command(async () => { if (bridge != null) await bridge.CancelAsync(); }, () => AuthBusy);
@@ -179,10 +189,11 @@ public sealed partial class MainViewModel
             ComponentStatus = "组件加载中 · 初始化运行环境…";
             var dispatcher = new ToolDispatcher(store, library, outreach,
                 new BraveWebSearch(http, () => File.Exists(Settings.SearchKeyFile) ? File.ReadAllText(Settings.SearchKeyFile).Trim() : null),
-                new ScholarlySearch(new ArxivSearch(http), new CrossrefSearch(http)), web);
+                new ScholarlySearch(new ArxivSearch(http), new CrossrefSearch(http)), web, services.Drafts);
             bridge = new AgentBridge(Settings.NodePath, Settings.AgentHostPath, Path.Combine(DataDirectory, "pi"), dispatcher, diagnostics);
+            modelCatalog = new AgentAccountCatalog(bridge);
             bridge.EventReceived += OnAgentEvent;
-            discovery = new DiscoveryService(database, store, library, bridge);
+            discovery = new DiscoveryService(database, store, library, bridge, services.Jobs);
             discovery.Changed += () => OnUi(Refresh);
             ComponentStatus = "组件加载中 · 读取服务商与模型…";
             await RefreshAgentStatusAsync(componentCancellation.Token);
@@ -192,29 +203,27 @@ public sealed partial class MainViewModel
         {
             ComponentStatus = "组件加载失败，可点击重试。";
             if (bridge != null) { bridge.EventReceived -= OnAgentEvent; await bridge.DisposeAsync(); bridge = null; }
+            modelCatalog = null;
             throw;
         }
         finally { ComponentLoading = false; connectionGate.Release(); }
     }
     private async Task RefreshAgentStatusAsync(CancellationToken token = default)
     {
-        var response = await bridge!.RequestAsync(new { type = "status", id = NewId(), provider = Settings.Provider }, token);
-        var data = response.GetProperty("data");
+        var catalog = await (modelCatalog ?? throw new InvalidOperationException("COMPONENT_NOT_READY")).GetAsync(token);
         var selected = Settings.Provider;
         Providers.Clear();
-        foreach (var item in data.GetProperty("providers").EnumerateArray())
+        foreach (var item in catalog.Providers)
         {
-            var id = item.GetProperty("id").GetString()!;
-            var name = id switch { "openai-codex" => "OpenAI · ChatGPT 账户", "openai" => "OpenAI · API", "anthropic" => "Claude · Anthropic", "zai" => "GLM · Z.AI", "zai-coding-cn" => "GLM · 智谱中国", _ => UiText(item.GetProperty("name").GetString()!) };
-            Providers.Add(new(id, name, item.GetProperty("configured").GetBoolean(), item.GetProperty("oauth").GetBoolean(), item.GetProperty("api_key").GetBoolean(),
-                item.GetProperty("models").EnumerateArray().Select(model => model.GetProperty("id").GetString()!).ToArray()));
+            var name = item.Id switch { "openai-codex" => "OpenAI · ChatGPT 账户", "openai" => "OpenAI · API", "anthropic" => "Claude · Anthropic", "zai" => "GLM · Z.AI", "zai-coding-cn" => "GLM · 智谱中国", _ => UiText(item.Name) };
+            Providers.Add(item with { Name = name });
         }
         SelectedProvider = Providers.FirstOrDefault(item => item.Id == selected) ?? Providers.FirstOrDefault();
     }
     private async Task LoginAsync()
     {
         AuthBusy = true; authUrl = null; lastOpenedAuthUrl = null; ProviderStatus = "正在准备授权…"; ClearAuthPrompt();
-        var provider = SelectedProvider!.Id; var method = SelectedLoginMethod!.Id;
+        var provider = SelectedProvider!.Id; var method = SelectedLoginMethod!.Id; var requestId = NewId(); authRequestId = requestId;
         diagnostics.Write("auth", "started", provider);
         try
         {
@@ -222,11 +231,11 @@ public sealed partial class MainViewModel
             var secret = ApiKeyRequired ? ProviderApiKey.Trim() : null;
             ProviderApiKey = "";
             object request = secret == null
-                ? new { type = "login", id = NewId(), provider, auth_type = "oauth", method }
-                : new { type = "login", id = NewId(), provider, auth_type = "api_key", method, secret };
+                ? new { type = "login", id = requestId, provider, auth_type = "oauth", method }
+                : new { type = "login", id = requestId, provider, auth_type = "api_key", method, secret };
             await bridge!.RequestAsync(request);
         }
-        catch { AuthBusy = false; throw; }
+        catch { authRequestId = null; AuthBusy = false; throw; }
     }
     private async Task ConnectGmailAsync(bool forceReauthorize = false)
     {
@@ -291,12 +300,12 @@ public sealed partial class MainViewModel
                 if (message.GetProperty("prompt_id").GetString() == authPromptId) ClearAuthPrompt();
                 break;
             case "auth_finished":
-                authUrl = null; ClearAuthPrompt();
+                authUrl = null; authRequestId = null; ClearAuthPrompt();
                 if (message.GetProperty("ok").GetBoolean()) _ = FinishLoginAsync();
                 else { AuthBusy = false; ProviderStatus = Explain(message.GetProperty("code").GetString()!); Status = ProviderStatus; }
                 break;
             case "host_disconnected":
-                ComponentReady = false; AuthBusy = false; ClearAuthPrompt();
+                ComponentReady = false; AuthBusy = false; authRequestId = null; ClearAuthPrompt();
                 ComponentStatus = "组件连接已中断，请重试加载。"; break;
             default:
                 Activity.Insert(0, DateTime.Now.ToString("HH:mm:ss") + " " + type);

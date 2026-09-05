@@ -51,7 +51,30 @@ try
     await ResearchTests.RunAsync(database, directory, args);
     await GmailTests.RunAsync(database);
     await AccountTests.RunAsync(directory);
+    await AccountCatalogTests.RunAsync();
+    await CollectorTests.RunAsync(directory);
     await SearchTests.RunAsync();
+    await DomainDataTests.RunAsync(database, directory);
+    await EvidenceTests.RunAsync(database, directory);
+    await AgentProtocolTests.RunAsync();
+    await JobTests.RunAsync(database);
+    await WindowTests.RunAsync();
+    await AdmissionImportTests.RunAsync(database, directory);
+    await FacultyCollectionTests.RunAsync(database, directory);
+    await FacultyIdentityTests.RunAsync(database, directory);
+    await FacultyResearchTests.RunAsync(database, directory);
+    await FacultyQueryTests.RunAsync(database, directory);
+    await ProfilesStatisticsTests.RunAsync(database, directory);
+    await RankingTests.RunAsync(database, directory);
+    await SemanticEvaluationTests.RunAsync();
+    await DraftingTests.RunAsync(database);
+    await SendConfirmationTests.RunAsync(database, directory);
+    await ApplicationCaseTests.RunAsync(database);
+    await RecordWorkspaceTests.RunAsync(database);
+    await RecordEditingTests.RunAsync(database);
+    await RecordQueryTests.RunAsync(database);
+    await WorkspaceRoundTripTests.RunAsync(database, directory);
+    await ImportTests.RunAsync(database, directory);
 }
 finally
 {

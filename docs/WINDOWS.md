@@ -17,7 +17,7 @@ python scripts/test-installer.py --installer artifacts/release-v0.2.0-login/Tool
 
 ## 使用便携包
 
-解压生成的 `ToolsTouch-win-x64*.zip` 到当前用户可写的 **Windows 本地目录**，运行 `ToolsTouch.exe`。包包含 .NET Windows x64 运行时、Node.js 和固定版本 Pi 依赖，不要求最终用户另外安装开发环境。不要直接从 `\\wsl.localhost\...` 运行：本次验证中，大小写敏感的 WSL 共享路径导致 WPF 原生 DLL 加载失败，Pi 启动也出现超时；复制到 Windows 本地目录后可运行。
+解压生成的 `ToolsTouch-win-x64*.zip` 到当前用户可写的 **Windows 本地目录**，运行 `ToolsTouch.exe`。包包含 .NET Windows x64 运行时、Node.js、固定版本 Pi 依赖、Windows Python embeddable runtime 和 collector 生产依赖，不要求最终用户另外安装开发环境。构建清单同时记录开发 workspace 的 Python 3.12.12 和随包 Windows runtime 的 Python 3.12.10。不要直接从 `\\wsl.localhost\...` 运行：本次验证中，大小写敏感的 WSL 共享路径导致 WPF 原生 DLL 加载失败，Pi 启动也出现超时；复制到 Windows 本地目录后可运行。
 
 已增加 Windows 11 原生自动检查，覆盖六页与详情子页渲染、界面绑定、草稿编辑、DPAPI 跨进程读取和 Pi 连接后退出。测试用合成资料和独立临时目录；真实账号、人工完整操作及干净 Windows 用户验收仍需完成。不要将自动检查当作完整验收。
 
@@ -64,11 +64,13 @@ v0.2.1 安装包已预置发布者的 Google 桌面登录配置，普通用户�
 
 ## 从源码运行
 
-开发机需要 .NET SDK 10.0.400、Node.js 24。仓库根目录运行：
+开发机需要 .NET SDK 10.0.400、Node.js 24、pnpm 10.14.0、uv 0.9.17 和 Python 3.12.12。仓库根目录运行：
 
 ```powershell
-npm --prefix agent-host ci --ignore-scripts
-npm --prefix agent-host test
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm --filter tools-touch-agent-host test
+uv sync --all-packages --locked
+uv run --all-packages --locked python -m unittest discover -s baoyan-cli -p 'test_*.py'
 dotnet run --project tests/ToolsTouch.Core.Tests
 dotnet run --project src/ToolsTouch.Desktop
 ```
@@ -78,12 +80,12 @@ dotnet run --project src/ToolsTouch.Desktop
 构建便携包还需要 Python 3：
 
 ```powershell
-python scripts/package.py
+uv run --all-packages --locked python scripts/package.py
 ```
 
-脚本先运行测试，再交叉发布 Windows x64，安装锁定的 Windows 生产依赖，下载并校验官方 Node 压缩包的 SHA-256。脚本不发布、不签名、不调用真实模型、不发送真实邮件；已有输出不会被覆盖，可用 `--output` 指定新目录。
+脚本先运行测试，再交叉发布 Windows x64，使用锁定的 uv 依赖安装 collector 的纯 Python Windows 生产依赖，下载并校验官方 Node 与 Python embeddable 压缩包的 SHA-256。脚本不发布、不签名、不调用真实模型、不发送真实邮件；已有输出不会被覆盖，可用 `--output` 指定新目录。
 
-可用 `python scripts/verify-package.py artifacts/ToolsTouch-win-x64-v0.2.0-login` 验证生成目录的全部文件哈希。校验只证明产物与构建清单一致，不是代码签名或 Windows 运行验证。
+可用 `uv run --all-packages --locked python scripts/verify-package.py artifacts/ToolsTouch-win-x64-v0.2.0-login` 验证生成目录的全部文件哈希。校验只证明产物与构建清单一致，不是代码签名或 Windows 运行验证。
 
 ## 可重复的 Windows 原生检查
 

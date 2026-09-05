@@ -11,9 +11,12 @@ using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using System.Windows.Input;
 using Microsoft.Data.Sqlite;
+using ToolsTouch.Application;
 using ToolsTouch.Core;
 using ToolsTouch.Desktop;
+using ToolsTouch.Infrastructure.Recommendation;
 
 internal static class Program
 {
@@ -95,6 +98,24 @@ internal static class Program
             var draft = outreach.CreateDraft(professor.Id, "test@example.org", "研究交流 · 测试草稿", "这是一封用于界面验证的本地草稿。", null, "test-draft");
             var sent = outreach.CreateDraft(professor.Id, "test@example.org", "已发送状态 · 替身记录", "测试替身，没有发送邮件。", null, "test-sent");
             outreach.SendAsync(sent.Id, new TestTransport()).GetAwaiter().GetResult();
+            Execute(database, "INSERT INTO UserProfile(Id,Version,CvPath,CvHash,ExperiencesJson,Confirmed,CreatedAt) VALUES('desktop-profile',1,'synthetic.pdf','synthetic-hash','{}',1,'now')");
+            var recommendationRepository = new RecommendationRepository(database, new ArtifactStore(database.ArtifactDirectory));
+            var recommendationRanker = new Ranker();
+            var recommendationCandidate = new RankingCandidate("ProfessorAppointment", professor.Id,
+                new EligibilityResult(EligibilityState.Eligible, [], []),
+                [new RankingComponent("direction", 1m, 0.5m, ["desktop-evidence"], null, "Rule")], 3,
+                ["方向证据已由语义评估核验"], []);
+            var baseRecommendationResult = recommendationRanker.Rank([recommendationCandidate], new WeightProfile("desktop-rank-v1"));
+            var semanticRecommendationResult = recommendationRanker.Rank([recommendationCandidate with
+            {
+                Components = [new RankingComponent("direction", 1m, 0.75m, ["desktop-evidence"], null, "Semantic")]
+            }], new WeightProfile("desktop-rank-v1"));
+            recommendationRepository.Publish(new RecommendationRunInput("desktop-base-run", "Base", "desktop-profile", null, 2026,
+                "desktop-rank-v1", "{\"minimumCoverage\":0.6}", "{\"candidate_scope_id\":\"desktop-scope-base\",\"targets\":[\"" + professor.Id + "\"]}",
+                new OrganizationRepository(database).Get().DataRevision, DateTimeOffset.UtcNow), baseRecommendationResult);
+            recommendationRepository.Publish(new RecommendationRunInput("desktop-semantic-run", "Semantic", "desktop-profile", null, 2026,
+                "desktop-rank-v1", "{\"minimumCoverage\":0.6}", "{\"candidate_scope_id\":\"desktop-scope-semantic\",\"targets\":[\"" + professor.Id + "\"]}",
+                new OrganizationRepository(database).Get().DataRevision, DateTimeOffset.UtcNow), semanticRecommendationResult);
             Task? googleCallback = null;
             var browserOpens = 0;
             string? copiedUrl = null;
@@ -191,7 +212,11 @@ internal static class Program
 
             Test("six pages and detail tabs render without binding errors", () =>
             {
-                Check(tabs.Items.Count == 6, "expected six pages");
+                Check(tabs.Items.Count == 9, "expected nine pages");
+                var firstGrid = Descendants<DataGrid>(window).First();
+                Check(firstGrid.EnableRowVirtualization && firstGrid.EnableColumnVirtualization &&
+                    VirtualizingPanel.GetIsVirtualizing(firstGrid) && VirtualizingPanel.GetVirtualizationMode(firstGrid) == VirtualizationMode.Recycling &&
+                    window.InputBindings.OfType<KeyBinding>().Any(binding => binding.Key == Key.F5), "shared grid style or refresh keyboard shortcut missing");
                 model.SelectedProfessor = model.Professors.Single();
                 model.SelectedDraft = model.Drafts.Single(item => item.Id == draft.Id);
                 for (var page = 0; page < tabs.Items.Count; page++)
@@ -210,6 +235,19 @@ internal static class Program
                     }
                 }
                 Check(bindings.Messages.Count == 0, string.Join("\n", bindings.Messages));
+            });
+
+            Test("recommendation center keeps scope, coverage and run comparison visible", () =>
+            {
+                tabs.SelectedIndex = 8; Pump();
+                Check(model.RecommendationCenter.Runs.Count == 2 && model.RecommendationCenter.Items.Count == 1,
+                    "recommendation runs were not loaded into the center");
+                model.RecommendationCenter.SelectedRun = model.RecommendationCenter.Runs.Single(run => run.Level == "Semantic");
+                model.RecommendationCenter.CompareRun = model.RecommendationCenter.Runs.Single(run => run.Level == "Base"); Pump();
+                Check(model.RecommendationCenter.ScopeSummary.Contains("候选快照") && model.RecommendationCenter.CoverageSummary.Contains("Eligible") &&
+                    model.RecommendationCenter.Comparison.Count == 1 && model.RecommendationCenter.Comparison[0].ScoreChange == "+25",
+                    "recommendation center did not preserve candidate scope, coverage groups and score changes");
+                Snapshot(window, Path.Combine(output, "recommendation-center.png"));
             });
 
             Test("draft selection, editing, saving and refresh preserve the editor", () =>
@@ -284,6 +322,12 @@ internal static class Program
         return failures == 0 ? 0 : 1;
     }
 
+    private static void Execute(LocalDatabase database, string sql)
+    {
+        using var connection = database.Open();
+        using var command = LocalDatabase.Command(connection, sql);
+        command.ExecuteNonQuery();
+    }
     private static void Check(bool condition, string message) { if (!condition) throw new Exception(message); }
     private static void WaitFor(Func<bool> condition, int seconds)
     {

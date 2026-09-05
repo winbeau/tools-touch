@@ -2,11 +2,15 @@
 
 正在实现的 Windows WPF 导师发现与投递工作台。Pi 负责发现、论文分析与起草；C# 应用服务负责本地数据、人工发送和回复状态。
 
+整体扩展架构见 [设计与分步编码计划](docs/design/README.md)：学校／学院窗口、导师采集、两级推荐、投递管理，以及支持自定义字段与全量导出的表格记录器。37 个实施工作包已完成；真实账号、来源范围和原生 Windows 人工验收按矩阵单独记录。
+
+新对话编码从 [Luna 接手入口](docs/design/START-HERE.md) 开始，按 [实施状态](docs/design/IMPLEMENTATION-STATE.md) 续接；文件迁移、37 个工作包、核心协议与黄金验收样例已列入设计。
+
 Windows 安装版：[前往 GitHub Releases](https://github.com/winbeau/tools-touch/releases)。下载 `ToolsTouch-Setup-*-win-x64.exe` 后双击安装，内置运行环境，无需管理员权限。卸载保留本地研究资料和账户数据；真实账号完整流程仍待验收。
 
 已提供六页 WPF、研究服务、Pi 登录适配和 Gmail 流程实现，并补充原生 Windows 桌面回归检查；真实账号端到端验收仍未完成。完整范围与未完成项见 [实施记录](docs/IMPLEMENTATION.md)。
 
-Windows 使用、配置与打包步骤见 [WINDOWS.md](docs/WINDOWS.md)。更新后的便携包目标为 `artifacts/ToolsTouch-win-x64-v0.2.1.zip`，内含 .NET、Node 和 Pi 依赖；原生自动检查不等于真实账号完整验收。逐项证据与缺口见 [ACCEPTANCE.md](docs/ACCEPTANCE.md)。
+Windows 使用、配置与打包步骤见 [WINDOWS.md](docs/WINDOWS.md)。便携包内含 self-contained .NET、Node、Pi 和 Python collector 生产依赖；原生自动检查不等于真实账号完整验收。逐项证据与缺口见 [ACCEPTANCE.md](docs/ACCEPTANCE.md)。
 
 ## v0.2.1 公众安装准备
 
@@ -18,11 +22,13 @@ Windows 使用、配置与打包步骤见 [WINDOWS.md](docs/WINDOWS.md)。更新
 
 ## 已有核心验证
 
-安装 .NET SDK 10.0.400 与 Node.js 24 后，从仓库根目录依次执行：
+安装 .NET SDK 10.0.400、Node.js 24、pnpm 10.14.0、uv 0.9.17 后，从仓库根目录依次执行：
 
 ```sh
-npm --prefix agent-host ci --ignore-scripts
-npm --prefix agent-host test
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm --filter tools-touch-agent-host test
+uv sync --all-packages --locked
+uv run --all-packages --locked python -m unittest discover -s baoyan-cli -p 'test_*.py'
 dotnet run --project tests/ToolsTouch.Core.Tests
 ```
 
@@ -48,9 +54,9 @@ AgentHost 依赖固定到与现有 `pi/` 相同的 0.85.0 版本，可单独启�
 
 ```sh
 cd agent-host
-npm ci --ignore-scripts
-npm test
-npm run build
+pnpm --dir .. --filter tools-touch-agent-host check
+pnpm --dir .. --filter tools-touch-agent-host test
+pnpm --dir .. --filter tools-touch-agent-host build
 node dist/index.js /path/to/dedicated-pi-storage
 ```
 

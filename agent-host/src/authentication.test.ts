@@ -28,7 +28,7 @@ test("OAuth chooses browser or device method without an orphaned initial prompt"
       if (method === "browser") interaction.notify({ type: "auth_url", url: "https://example.org/authorize" });
       else interaction.notify({ type: "device_code", userCode: "ABCD-1234", verificationUri: "https://example.org/authorize" });
     });
-    auth.start({ id: method, method });
+    auth.start({ id: method, provider: "openai-codex", auth_type: "oauth", method });
     await tick();
     assert.equal(events.some(event => event.type === "auth_prompt"), false);
     assert.equal(events.at(-1).ok, true);
@@ -42,16 +42,17 @@ test("pending login rejects duplicates, cancels, and permits immediate retry", a
   const { auth, events } = fixture(async (_provider, _type, interaction) => {
     await interaction.prompt({ type: "manual_code", message: "Paste code" });
   });
-  auth.start({ id: "first" }); await tick();
+  auth.start({ id: "first", provider: "openai-codex", auth_type: "oauth" }); await tick();
   const prompt = events.find(event => event.type === "auth_prompt");
-  auth.start({ id: "duplicate" });
+  auth.start({ id: "duplicate", provider: "openai-codex", auth_type: "oauth" });
   assert.equal(events.at(-1).code, "AUTH_IN_PROGRESS");
   await auth.cancel();
   assert.equal(auth.busy, false);
   assert.equal(events.at(-1).code, "AUTH_CANCELLED");
-  assert.equal(auth.reply(prompt.prompt_id, "expired"), false);
-  auth.start({ id: "retry" }); await tick();
-  assert.equal(auth.reply(events.filter(event => event.type === "auth_prompt").at(-1).prompt_id, "synthetic-code"), true);
+  assert.equal(auth.reply(prompt.auth_request_id, prompt.prompt_id, "expired"), false);
+  auth.start({ id: "retry", provider: "openai-codex", auth_type: "oauth" }); await tick();
+  const retryPrompt = events.filter(event => event.type === "auth_prompt").at(-1);
+  assert.equal(auth.reply(retryPrompt.auth_request_id, retryPrompt.prompt_id, "synthetic-code"), true);
   await tick();
   assert.equal(events.at(-1).ok, true);
 });
@@ -112,7 +113,7 @@ test("browser callback closes manual prompt while credential exchange is still p
     callback.abort(); await input;
     await new Promise<void>(resolve => { finish = resolve; });
   });
-  auth.start({ id: "callback" }); await tick();
+  auth.start({ id: "callback", provider: "openai-codex", auth_type: "oauth" }); await tick();
   assert.equal(auth.busy, true);
   assert.ok(events.some(e => e.type === "auth_progress" && e.stage === "verifying_credentials"));
   assert.equal(events.some(e => e.type === "auth_finished"), false);
@@ -143,10 +144,10 @@ test("real OpenAI SDK completes code exchange and persists credentials before su
     const value = event as any;
     // The real SDK supports manual callback entry; no real browser/account or port request is needed.
     if (value.type === "auth_prompt" && value.kind === "manual_code")
-      queueMicrotask(() => { auth.reply(value.prompt_id, "synthetic-code"); });
+      queueMicrotask(() => { auth.reply(value.auth_request_id, value.prompt_id, "synthetic-code"); });
   });
   try {
-    auth.start({ id: "real-sdk", provider: "openai-codex", method: "browser" });
+    auth.start({ id: "real-sdk", provider: "openai-codex", auth_type: "oauth", method: "browser" });
     for (let n = 0; auth.busy && n < 1000; n++) await new Promise(resolve => setTimeout(resolve, 10));
     assert.equal(auth.busy, false);
     assert.equal(exchanges, 1);

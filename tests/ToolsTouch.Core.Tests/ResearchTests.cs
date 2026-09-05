@@ -156,7 +156,7 @@ static class ResearchTests
         {
             var request = JsonSerializer.SerializeToElement(command, ResearchStore.Json);
             object data;
-            if (request.GetProperty("output_kind").GetString() == "research")
+            if (request.GetProperty("input_context").GetProperty("output_kind").GetString() == "research")
             {
                 ReadCalls++;
                 data = new { state = "Completed", output = new { summary = "Read source", professor_ids = new[] { professorId }, paper_ids = new[] { paperId } } };
@@ -164,7 +164,8 @@ static class ResearchTests
             else if (++AnalysisCalls == 1) data = new { state = "Failed", code = "SIMULATED_INTERRUPTION" };
             else data = new { state = "Completed", output = new { professor_id = professorId, research_summary = "Evidence-based summary", personal_match = (string?)null,
                 paper_ids = new[] { paperId }, evidence = new[] { new { url = "https://example.org/research", claim = "Researcher works on world models" } } } };
-            EventReceived?.Invoke(JsonSerializer.SerializeToElement(new { type = "run_finished", run_id = request.GetProperty("run_id").GetString(), data }, ResearchStore.Json));
+            EventReceived?.Invoke(JsonSerializer.SerializeToElement(new { type = "run_finished", run_id = request.GetProperty("run_id").GetString(),
+                stage_key = request.GetProperty("stage_key").GetString(), attempt_id = request.GetProperty("attempt_id").GetString(), data }, ResearchStore.Json));
             return Task.FromResult(JsonSerializer.SerializeToElement(new { type = "response", id = request.GetProperty("id").GetString(), ok = true }));
         }
     }

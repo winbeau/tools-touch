@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "scope": "U01-U11",
+  "status_rule": "NotVerified means automated or synthetic evidence exists but the required real workflow has not been observed.",
+  "entries": [
+    {
+      "id": "U01",
+      "title": "Gmail 登录",
+      "status": "NotVerified",
+      "automated_evidence": ["tests/ToolsTouch.Core.Tests/GmailTests.cs", "tests/ToolsTouch.Core.Tests/Program.cs"],
+      "evidence_scope": "Synthetic loopback OAuth, state/PKCE, failure classification and protected credential fixtures.",
+      "required_real_evidence": "A real Google Desktop OAuth login, restart refresh and reconnect on a clean Windows user.",
+      "blocking_condition": "No real Google account and current native Windows acceptance session."
+    },
+    {
+      "id": "U02",
+      "title": "OpenAI／DeepSeek／Claude／GLM 登录",
+      "status": "NotVerified",
+      "automated_evidence": ["agent-host/src/authentication.test.ts", "tests/ToolsTouch.Core.Tests/AccountCatalogTests.cs"],
+      "evidence_scope": "Real SDK code paths with synthetic credentials, provider catalog and auth cancellation/retry tests.",
+      "required_real_evidence": "One user-selected provider login, model verification, restart and credential refresh.",
+      "blocking_condition": "No real provider account or model request authorized."
+    },
+    {
+      "id": "U03",
+      "title": "导师方向分析",
+      "status": "NotVerified",
+      "automated_evidence": ["tests/ToolsTouch.Core.Tests/ResearchTests.cs", "tests/ToolsTouch.Core.Tests/SemanticEvaluationTests.cs", "tests/ToolsTouch.Core.Tests/FacultyResearchTests.cs"],
+      "evidence_scope": "Synthetic source evidence, paper scope, profile-version boundaries and structured semantic output validation.",
+      "required_real_evidence": "A real model run using a selected public faculty source and a human check of citations and claims.",
+      "blocking_condition": "No real model account or selected source scope."
+    },
+    {
+      "id": "U04",
+      "title": "邮件撰写",
+      "status": "NotVerified",
+      "automated_evidence": ["tests/ToolsTouch.Core.Tests/DraftingTests.cs", "tests/ToolsTouch.Core.Tests/ResearchTests.cs"],
+      "evidence_scope": "Draft versioning, frozen references, CAS and preservation of human edits under synthetic model responses.",
+      "required_real_evidence": "A real or user-selected model draft reviewed in the WPF editor with references and attachments.",
+      "blocking_condition": "No real model workflow or current native editor session."
+    },
+    {
+      "id": "U05",
+      "title": "用户确认发送",
+      "status": "NotVerified",
+      "automated_evidence": ["tests/ToolsTouch.Core.Tests/SendConfirmationTests.cs", "tests/ToolsTouch.Core.Tests/GmailTests.cs"],
+      "evidence_scope": "One-time confirmation, immutable MIME, duplicate-click prevention, Unknown recovery and protected send state.",
+      "required_real_evidence": "A user explicitly confirms one concrete message in the UI, then verifies the sent record and outcome.",
+      "blocking_condition": "No user-authorized real mail send; real sending is intentionally excluded from automated runs."
+    },
+    {
+      "id": "U06",
+      "title": "学校／学院窗口表",
+      "status": "NotVerified",
+      "automated_evidence": ["tests/ToolsTouch.Core.Tests/WindowTests.cs", "tests/ToolsTouch.Core.Tests/AdmissionImportTests.cs"],
+      "evidence_scope": "Synthetic current/historical window rules, cycle separation, import idempotency and school aggregation fixtures.",
+      "required_real_evidence": "A selected school's public notices checked against current actual windows and historical projections.",
+      "blocking_condition": "Source range and first school seed list are still undecided."
+    },
+    {
+      "id": "U07",
+      "title": "学院画像、背景 bar、导师评价",
+      "status": "NotVerified",
+      "automated_evidence": ["tests/ToolsTouch.Core.Tests/ProfilesStatisticsTests.cs", "tests/ToolsTouch.Core.Tests/EvidenceTests.cs", "tests/ToolsTouch.Core.Tests/FacultyResearchTests.cs"],
+      "evidence_scope": "Denominator-aware synthetic statistics, provenance, unknown values and faculty evidence fixtures.",
+      "required_real_evidence": "A real faculty sample with source-backed identity, background and evaluation claims checked by a human.",
+      "blocking_condition": "No selected school/faculty source scope and no real source review."
+    },
+    {
+      "id": "U08",
+      "title": "学院推荐",
+      "status": "NotVerified",
+      "automated_evidence": ["tests/ToolsTouch.Core.Tests/RankingTests.cs", "tests/ToolsTouch.Core.Tests/SemanticEvaluationTests.cs", "src/ToolsTouch.Desktop/RecommendationCenterViewModel.cs"],
+      "evidence_scope": "Synthetic eligibility, stable scoring, semantic unknowns and recommendation snapshot fixtures.",
+      "required_real_evidence": "A recommendation run from selected profile/needs versions with source citations and a human review of eligibility.",
+      "blocking_condition": "No real candidate source pool or model run."
+    },
+    {
+      "id": "U09",
+      "title": "学院全部导师采集",
+      "status": "NotVerified",
+      "automated_evidence": ["tests/ToolsTouch.Core.Tests/FacultyCollectionTests.cs", "tests/ToolsTouch.Core.Tests/FacultyIdentityTests.cs", "tests/ToolsTouch.Core.Tests/CollectorTests.cs"],
+      "evidence_scope": "Synthetic directory pagination, identity resolution, coverage failures and collector manifest validation.",
+      "required_real_evidence": "One selected school's complete public directory crawl, coverage report and manual spot check.",
+      "blocking_condition": "No fixed school seed list or real source crawl authorized."
+    },
+    {
+      "id": "U10",
+      "title": "根据 CV／需求排名导师",
+      "status": "NotVerified",
+      "automated_evidence": ["tests/ToolsTouch.Core.Tests/RankingTests.cs", "tests/ToolsTouch.Core.Tests/ProfilesStatisticsTests.cs", "tests/ToolsTouch.Core.Tests/ResearchTests.cs"],
+      "evidence_scope": "Synthetic confirmed-profile versions, preference strengths, eligibility states and stable ranking.",
+      "required_real_evidence": "A user-confirmed CV/needs version ranked against a real faculty pool with explainable citations.",
+      "blocking_condition": "No real CV review plus selected source pool and model run."
+    },
+    {
+      "id": "U11",
+      "title": "分析／投递数据库及美观表格",
+      "status": "NotVerified",
+      "automated_evidence": ["tests/ToolsTouch.Core.Tests/RecordWorkspaceTests.cs", "tests/ToolsTouch.Core.Tests/RecordEditingTests.cs", "tests/ToolsTouch.Core.Tests/RecordQueryTests.cs", "tests/ToolsTouch.Core.Tests/WorkspaceRoundTripTests.cs", "artifacts/implementation/P08-A/20260905T173000Z/results.json", "artifacts/implementation/P08-B/20260905T180000Z/results.json", "artifacts/implementation/P08-C/20260905T184500Z/results.json"],
+      "evidence_scope": "Typed custom tables, relations, views, edits, import/export/recovery, virtualization configuration and portable package contracts.",
+      "required_real_evidence": "Current Windows package rendered and operated by a user across editing, import, export, backup restore and send-state protection.",
+      "blocking_condition": "Current Linux host cannot run WPF; clean Windows user acceptance is still required."
+    }
+  ],
+  "global_not_verified": [
+    "Native Windows WPF/DPAPI/install lifecycle for the P08-C package",
+    "Real provider/model/Gmail/Brave credentials and real mail delivery",
+    "Source range and first school seed list"
+  ]
+}

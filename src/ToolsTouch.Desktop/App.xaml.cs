@@ -3,7 +3,7 @@ using ToolsTouch.Core;
 
 namespace ToolsTouch.Desktop;
 
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
     private MainViewModel? viewModel;
     private Mutex? instanceMutex;

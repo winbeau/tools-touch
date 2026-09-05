@@ -1,0 +1,637 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools-touch.local/contracts/agent-v2.schema.json",
+  "title": "Tools Touch Agent Host protocol v2",
+  "description": "Strict UTF-8 JSONL messages. A frame excludes its terminating LF and is at most 1048576 bytes.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/status"
+    },
+    {
+      "$ref": "#/$defs/login"
+    },
+    {
+      "$ref": "#/$defs/auth_reply"
+    },
+    {
+      "$ref": "#/$defs/cancel_auth"
+    },
+    {
+      "$ref": "#/$defs/run"
+    },
+    {
+      "$ref": "#/$defs/cancel_run"
+    },
+    {
+      "$ref": "#/$defs/tool_result"
+    },
+    {
+      "$ref": "#/$defs/ready"
+    },
+    {
+      "$ref": "#/$defs/response"
+    },
+    {
+      "$ref": "#/$defs/event"
+    },
+    {
+      "$ref": "#/$defs/error"
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100000
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/id"
+        },
+        "stage_key": {
+          "$ref": "#/$defs/id"
+        },
+        "attempt_id": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "required": [
+        "run_id",
+        "stage_key",
+        "attempt_id"
+      ]
+    },
+    "base": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "const": 2
+        },
+        "type": {
+          "type": "string"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "type",
+        "id"
+      ]
+    },
+    "status": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "status"
+            },
+            "provider": {
+              "$ref": "#/$defs/id"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "login": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "login"
+            },
+            "provider": {
+              "$ref": "#/$defs/id"
+            },
+            "auth_type": {
+              "enum": [
+                "oauth",
+                "api_key"
+              ]
+            },
+            "method": {
+              "type": "string"
+            },
+            "secret": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "provider",
+            "auth_type"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "auth_reply": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "auth_reply"
+            },
+            "auth_request_id": {
+              "$ref": "#/$defs/id"
+            },
+            "prompt_id": {
+              "$ref": "#/$defs/id"
+            },
+            "value": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "auth_request_id",
+            "prompt_id",
+            "value"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "cancel_auth": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "cancel_auth"
+            },
+            "auth_request_id": {
+              "$ref": "#/$defs/id"
+            }
+          },
+          "required": [
+            "type",
+            "auth_request_id"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "run": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "$ref": "#/$defs/target"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "run"
+            },
+            "provider": {
+              "$ref": "#/$defs/id"
+            },
+            "model": {
+              "$ref": "#/$defs/id"
+            },
+            "policy_id": {
+              "enum": [
+                "research",
+                "analysis",
+                "draft"
+              ]
+            },
+            "input_context": {
+              "$ref": "#/$defs/input_context"
+            },
+            "limits": {
+              "$ref": "#/$defs/limits"
+            }
+          },
+          "required": [
+            "type",
+            "provider",
+            "model",
+            "policy_id",
+            "input_context",
+            "limits"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "cancel_run": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "$ref": "#/$defs/target"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "cancel_run"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "tool_result": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/base"
+        },
+        {
+          "$ref": "#/$defs/target"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "tool_result"
+            },
+            "tool_call_id": {
+              "$ref": "#/$defs/id"
+            },
+            "result": {}
+          },
+          "required": [
+            "type",
+            "tool_call_id",
+            "result"
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ready": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "const": 2
+        },
+        "type": {
+          "const": "ready"
+        },
+        "host_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pi_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "supported_policies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1
+        },
+        "provider_catalog": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/provider"
+          }
+        }
+      },
+      "required": [
+        "protocol_version",
+        "type",
+        "host_version",
+        "pi_version",
+        "supported_policies",
+        "provider_catalog"
+      ],
+      "additionalProperties": false
+    },
+    "response": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "const": 2
+        },
+        "type": {
+          "const": "response"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {},
+        "error": {},
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "type",
+        "id",
+        "ok"
+      ],
+      "additionalProperties": false
+    },
+    "event": {
+      "allOf": [
+        {
+          "type": "object",
+          "properties": {
+            "protocol_version": {
+              "const": 2
+            },
+            "type": {
+              "enum": [
+                "run_started",
+                "progress",
+                "run_finished",
+                "tool_request",
+                "auth_url",
+                "auth_prompt",
+                "auth_device_code",
+                "auth_progress",
+                "auth_prompt_closed",
+                "auth_finished",
+                "host_disconnected"
+              ]
+            },
+            "run_id": {
+              "$ref": "#/$defs/id"
+            },
+            "stage_key": {
+              "$ref": "#/$defs/id"
+            },
+            "attempt_id": {
+              "$ref": "#/$defs/id"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "data": {},
+            "error": {},
+            "tool_call_id": {
+              "$ref": "#/$defs/id"
+            },
+            "tool": {
+              "$ref": "#/$defs/id"
+            },
+            "arguments": {},
+            "auth_request_id": {
+              "$ref": "#/$defs/id"
+            },
+            "provider": {
+              "$ref": "#/$defs/id"
+            },
+            "prompt_id": {
+              "$ref": "#/$defs/id"
+            },
+            "url": {
+              "type": "string"
+            },
+            "code": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "options": {
+              "type": "array"
+            },
+            "stage": {
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "protocol_version",
+            "type"
+          ]
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "run_started",
+                  "progress",
+                  "run_finished",
+                  "tool_request"
+                ]
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/target"
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "protocol_version": {
+          "const": 2
+        },
+        "type": {
+          "const": "error"
+        },
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object"
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "type",
+        "code",
+        "message",
+        "retryable"
+      ],
+      "additionalProperties": false
+    },
+    "input_context": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100000
+        },
+        "output_kind": {
+          "enum": [
+            "research",
+            "analysis",
+            "draft"
+          ]
+        }
+      },
+      "required": [
+        "prompt",
+        "output_kind"
+      ],
+      "additionalProperties": false
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "max_tool_calls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 900000
+        }
+      },
+      "required": [
+        "max_tool_calls",
+        "timeout_ms"
+      ],
+      "additionalProperties": false
+    },
+    "provider_auth_method": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "enum": [
+            "oauth",
+            "api_key"
+          ]
+        },
+        "requires_secret": {
+          "type": "boolean"
+        },
+        "interactive": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "requires_secret",
+        "interactive"
+      ],
+      "additionalProperties": false
+    },
+    "provider_model": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "provider": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "$ref": "#/$defs/id"
+        },
+        "configured": {
+          "type": "boolean"
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "state": {
+          "enum": [
+            "Disconnected",
+            "Configured",
+            "Verified",
+            "Authorizing",
+            "Expired"
+          ]
+        },
+        "last_validated_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "auth_methods": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/provider_auth_method"
+          }
+        },
+        "oauth": {
+          "type": "boolean"
+        },
+        "api_key": {
+          "type": "boolean"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/provider_model"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "configured",
+        "verified",
+        "state",
+        "last_validated_at",
+        "auth_methods",
+        "oauth",
+        "api_key",
+        "models"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

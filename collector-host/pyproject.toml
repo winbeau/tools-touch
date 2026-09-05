@@ -1,0 +1,19 @@
+[project]
+name = "tools-touch-collector"
+version = "0.1.0"
+description = "Tools Touch machine-readable source collector"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "httpx==0.28.1",
+  "openpyxl==3.1.5",
+]
+
+[project.scripts]
+tools-touch-collector = "tools_touch_collector.__main__:main"
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tools_touch_collector"]

@@ -15,7 +15,7 @@ def copy_tree(source, destination):
         if value.startswith("\\\\?\\"):
             return value
         return "\\\\?\\UNC\\" + value[2:] if value.startswith("\\\\") else "\\\\?\\" + value
-    # Nested npm dependencies can exceed the legacy Windows/UNC path limit.
+    # Nested Node dependencies can exceed the legacy Windows/UNC path limit.
     shutil.copytree(extended(source), extended(destination))
 
 

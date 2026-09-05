@@ -8,6 +8,7 @@ namespace ToolsTouch.Desktop;
 public sealed class DesktopSettings
 {
     public string NodePath { get; set; } = File.Exists(Path.Combine(AppContext.BaseDirectory, "node", "node.exe")) ? Path.Combine(AppContext.BaseDirectory, "node", "node.exe") : "node";
+    public string PythonPath { get; set; } = File.Exists(Path.Combine(AppContext.BaseDirectory, "python", "python.exe")) ? Path.Combine(AppContext.BaseDirectory, "python", "python.exe") : "python";
     public string AgentHostPath { get; set; } = Path.Combine(AppContext.BaseDirectory, "agent-host", "dist", "index.js");
     public bool AutoOpenLoginBrowser { get; set; } = true;
     public string Model { get; set; } = "";
@@ -31,8 +32,10 @@ public sealed class DesktopSettings
         // always take precedence, so upgrading cannot keep a broken old runtime path.
         var bundledHost = Path.Combine(AppContext.BaseDirectory, "agent-host", "dist", "index.js");
         var bundledNode = Path.Combine(AppContext.BaseDirectory, "node", "node.exe");
+        var bundledPython = Path.Combine(AppContext.BaseDirectory, "python", "python.exe");
         if (File.Exists(bundledHost) && File.Exists(bundledNode))
         { settings.AgentHostPath = bundledHost; settings.NodePath = bundledNode; }
+        if (File.Exists(bundledPython)) settings.PythonPath = bundledPython;
         if (!File.Exists(settings.AgentHostPath))
         {
             for (var source = new DirectoryInfo(AppContext.BaseDirectory); source != null; source = source.Parent)
