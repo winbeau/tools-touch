@@ -6,4 +6,5 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../../src/ToolsTouch.Desktop/ToolsTouch.Desktop.csproj" /></ItemGroup>
+  <ItemGroup><Content Include="../../src/ToolsTouch.Desktop/App.xaml" Link="ApplicationResources.xaml" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
 </Project>

@@ -27,11 +27,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=ROOT / "artifacts" / "ToolsTouch-win-x64")
     parser.add_argument("--google-client", type=Path, help="Publisher-provided Google Desktop OAuth client JSON to bundle")
+    parser.add_argument("--public", action="store_true", help="Require bundled publisher login configuration for a public-distribution package")
     args = parser.parse_args()
+    if args.public and not args.google_client:
+        raise SystemExit("Public-distribution packages require --google-client; end users must not configure OAuth")
     if args.google_client:
         config = json.loads(args.google_client.read_text(encoding="utf-8-sig"))
         installed = config.get("installed", {})
-        if not isinstance(installed, dict) or not str(installed.get("client_id", "")).endswith(".apps.googleusercontent.com"):
+        if not isinstance(installed, dict) or not str(installed.get("client_id", "")).endswith(".apps.googleusercontent.com") or not isinstance(installed.get("client_secret"), str) or not installed["client_secret"].strip():
             raise SystemExit("Google configuration must be a Desktop app OAuth client JSON")
     output = args.output.resolve()
     archive_output = Path(str(output) + ".zip")
@@ -75,7 +78,7 @@ def main():
                 (node_directory / name).write_bytes(bundle.read(f"node-v{NODE_VERSION}-win-x64/{name}"))
         shutil.copy2(ROOT / "docs" / "WINDOWS.md", staging / "START-HERE.md")
         shutil.copy2(ROOT / "config" / "settings.example.json", staging / "settings.example.json")
-        manifest = {"platform": "win-x64", "node": NODE_VERSION, "pi": "0.85.0", "windowsRuntimeVerified": False,
+        manifest = {"platform": "win-x64", "node": NODE_VERSION, "pi": "0.85.0", "windowsRuntimeVerified": False, "googleClientBundled": bool(args.google_client),
                     "files": {file.relative_to(staging).as_posix(): hashlib.sha256(file.read_bytes()).hexdigest()
                               for file in sorted(staging.rglob("*")) if file.is_file()}}
         (staging / "BUILD-MANIFEST.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")

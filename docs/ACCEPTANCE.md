@@ -88,3 +88,10 @@ GitHub Release 随包提供安装器构建元数据、校验值和上述两份 J
 - 最终便携包 artifacts/ToolsTouch-win-x64-v0.2.0-login.zip；26,235 个文件哈希校验通过。原生测试中的 ToolsTouch.dll 和 ToolsTouch.Core.dll 与最终便携包逐一哈希相同。
 - 安装器逻辑沿用 v0.1.0 已验收的安装/修复/卸载路径；本轮编译新版 payload，没有对用户现有安装执行卸载或覆盖。v0.2.0 不声称重新完成真实账号端到端或安装生命周期验收。
 - 当前外部前提：没有取得有效 Google 桌面 OAuth 客户端配置，Google Cloud 需要用户登录后接续注册。因此此版本作为测试版发布，未配置客户端时不能进入工作台。不能以模拟授权通过声称 Gmail 或 OpenAI 的真实账号登录已成功。
+
+## v0.2.1 公开安装配置验证
+
+- 公开包内置发布者桌面 OAuth 客户端，安装用户不需导入 JSON。
+- 26236 个随包文件哈希验证通过；Windows 原生 12 组全部通过，证据目录 `artifacts/windows-check-v0.2.1-r3`。
+- 原生测试加载同一份生产界面资源，使用独立 Application，避免误触发真实应用启动与用户数据目录。测试与便携包的 Desktop/Core DLL 哈希一致。
+- Gmail API 已启用；Google 应用仍为 External / Testing，品牌/域名与权限审核未完成。真实账号登录及发送未完成验收，不宣称所有 Google 用户已可使用。

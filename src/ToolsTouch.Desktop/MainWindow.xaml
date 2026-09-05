@@ -17,9 +17,9 @@
           <Button Content="取消登录" Command="{Binding CancelGmailCommand}" HorizontalAlignment="Left"/>
           <TextBlock Text="{Binding GmailProgress}" Foreground="#167D8D" Margin="0,8,0,16"/>
           <TextBlock Text="授权完成后自动进入工作台，下次打开保留登录。发送邮件前仍需你逐封确认。" Foreground="#526774" Margin="0,0,0,20"/>
-          <Expander Header="登录配置与帮助" IsExpanded="True">
+          <Expander Header="开发者连接配置" Visibility="{Binding ShowGoogleSetup, Converter={StaticResource BoolVisibility}}">
             <StackPanel Margin="0,12"><TextBlock Text="{Binding GmailClientName}"/>
-              <TextBlock Text="如果提示缺少客户端配置，请联系应用发布者提供 Google 桌面 OAuth 客户端 JSON，再点击下方导入。此配置用于识别应用，不是你的 Gmail 密码。" Margin="0,8"/>
+              <TextBlock Text="源码或开发版本可在此导入 Google 桌面 OAuth 客户端配置。官方安装版由发布者预置，普通用户无需配置。" Margin="0,8"/>
               <Button Content="导入 Google 客户端配置" Command="{Binding ImportGoogleClientCommand}" HorizontalAlignment="Left"/>
               <Button Content="打开诊断日志" Command="{Binding OpenLogsCommand}" HorizontalAlignment="Left"/>
             </StackPanel>
@@ -96,9 +96,10 @@
           <Button Content="提交授权信息" Command="{Binding AuthReplyCommand}" HorizontalAlignment="Left"/>
           <TextBlock Text="模型"/><ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding Settings.Model}" IsEnabled="{Binding AccountControlsEnabled}" MinWidth="350" Margin="0,4,0,14"/>
           <TextBlock Text="Gmail" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="{Binding GmailStatus}" Margin="0,6"/>
-          <TextBlock Text="{Binding GmailClientName}"/><TextBlock Text="{Binding GmailProgress}" Foreground="#167D8D" Margin="0,6"/>
-          <WrapPanel><Button Content="导入 Google 客户端配置" Command="{Binding ImportGoogleClientCommand}"/><Button Content="连接 Gmail" Command="{Binding ConnectGmailCommand}"/><Button Content="取消 Gmail 授权" Command="{Binding CancelGmailCommand}"/></WrapPanel>
-          <Expander Header="Gmail 连接说明"><TextBlock Margin="0,8" Text="Gmail 连接需要应用的 Google 桌面 OAuth 客户端配置。如果此安装包尚未提供，请联系发布者获取配置。使用自己的 Google Cloud 项目时，需启用 Gmail API、创建桌面应用客户端，并在测试模式中添加自己的邮箱；然后导入下载的 JSON。这里不需要 Gmail 密码。"/></Expander>
+          <TextBlock Text="{Binding GmailProgress}" Foreground="#167D8D" Margin="0,6"/>
+          <WrapPanel><Button Content="连接 Gmail" Command="{Binding ConnectGmailCommand}"/><Button Content="取消 Gmail 授权" Command="{Binding CancelGmailCommand}"/></WrapPanel>
+          <TextBlock Text="Gmail 同时是应用账号与投递邮箱。官方安装版已经包含登录配置，你只需在 Google 页面选择自己的账号并授权。" Foreground="#526774" Margin="0,8,0,16"/>
+          <Expander Header="开发者连接配置" Visibility="{Binding ShowGoogleSetup, Converter={StaticResource BoolVisibility}}"><StackPanel><TextBlock Text="{Binding GmailClientName}"/><Button Content="导入 Google 客户端配置" Command="{Binding ImportGoogleClientCommand}" HorizontalAlignment="Left"/></StackPanel></Expander>
           <TextBlock Text="CV 与确认后的经历" FontSize="18" FontWeight="SemiBold"/><Button Content="导入 CV.pdf" Command="{Binding ImportCvCommand}" HorizontalAlignment="Left"/>
           <TextBox Text="{Binding CvText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="200" VerticalScrollBarVisibility="Auto"/>
           <TextBlock Text="研究兴趣"/><TextBox Text="{Binding Interests}"/><TextBlock Text="项目经历"/><TextBox Text="{Binding Projects}" AcceptsReturn="True" MinHeight="90" TextWrapping="Wrap"/><TextBlock Text="技能"/><TextBox Text="{Binding Skills}"/><Button Content="确认并保存新资料版本" Command="{Binding ConfirmCvCommand}" HorizontalAlignment="Left"/>

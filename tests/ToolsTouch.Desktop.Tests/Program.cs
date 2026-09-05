@@ -34,8 +34,12 @@ internal static class Program
         Directory.CreateDirectory(output);
         var directory = Path.Combine(Path.GetTempPath(), "tools-touch-desktop-tests-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
-        var app = new App { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        app.InitializeComponent();
+        var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        // Load the exact production styles without invoking App.OnStartup or the real user session.
+        var resources = System.Xml.Linq.XDocument.Load(Path.Combine(AppContext.BaseDirectory, "ApplicationResources.xaml"));
+        var dictionary = new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("ResourceDictionary", "http://schemas.microsoft.com/winfx/2006/xaml/presentation"),
+            resources.Root!.Attributes().Where(attribute => attribute.IsNamespaceDeclaration), resources.Root!.Elements().Single().Elements());
+        app.Resources = (ResourceDictionary)System.Windows.Markup.XamlReader.Parse(dictionary.ToString());
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(app.Dispatcher));
         MainViewModel? model = null;
         MainWindow? window = null;
@@ -75,6 +79,12 @@ internal static class Program
             Test("isolated settings round trip", () =>
             {
                 Check(DesktopSettings.Load(directory).AgentHostPath == host, "settings did not persist");
+                var bundled = Path.Combine(AppContext.BaseDirectory, "config", "google-client.json");
+                if (File.Exists(bundled))
+                {
+                    Check(DesktopSettings.Load(directory).GoogleClientFile == bundled, "fresh installation did not discover publisher login configuration");
+                    _ = GoogleClient.FromFile(bundled);
+                }
                 Check(!File.ReadAllText(Path.Combine(directory, "settings.json")).Contains("storageDirectory"), "storage location must not be serialized");
             });
             var database = new LocalDatabase(Path.Combine(directory, "tools-touch.db")); database.Initialize();
@@ -104,12 +114,14 @@ internal static class Program
             var tabs = (TabControl)window.FindName("WorkspaceTabs");
             Test("first launch requires Gmail; failed login cannot unlock workspace", () =>
             {
+                if (File.Exists(Path.Combine(AppContext.BaseDirectory, "config", "google-client.json")))
+                    Check(model.GoogleClientBundled && !model.ShowGoogleSetup, "public package asks end users to import OAuth configuration");
                 Check(model.NeedsSignIn && !model.IsSignedIn && !model.DiscoverCommand.CanExecute(null), "first launch bypassed login");
                 Check(((FrameworkElement)window.FindName("WorkspacePanel")).Visibility == Visibility.Collapsed, "workspace visible before login");
                 Snapshot(window, Path.Combine(output, "first-launch-login.png"));
                 model.Settings.GoogleClientFile = "";
                 model.ConnectGmailCommand.Execute(null); Pump();
-                Check(!model.IsSignedIn && model.GmailProgress.Contains("Google"), "missing config unlocked workspace");
+                Check(!model.IsSignedIn && model.GmailProgress.Contains("登录配置"), "missing config unlocked workspace");
             });
             Test("Gmail login unlocks app, identifies sender and survives reopening", () =>
             {
@@ -154,7 +166,7 @@ internal static class Program
             {
                 model.Settings.GoogleClientFile = "";
                 model.ConnectGmailCommand.Execute(null); Pump();
-                Check(model.GmailProgress.Contains("Google") && !model.GmailProgress.Contains("RUN_BUSY"), "missing configuration not explained");
+                Check(model.GmailProgress.Contains("登录配置") && !model.GmailProgress.Contains("RUN_BUSY"), "missing configuration not explained");
                 Check(model.ConnectGmailCommand.CanExecute(null), "failed Gmail login blocks retry");
             });
 

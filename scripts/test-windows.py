@@ -49,6 +49,9 @@ def main():
                             "--self-contained", "true", "-o", str(runtime)], cwd=ROOT, check=True)
         for relative in ("node", "agent-host"):
             copy_tree(package / relative, workspace / relative)
+        if (package / "config/google-client.json").is_file():
+            (runtime / "config").mkdir(exist_ok=True)
+            shutil.copy2(package / "config/google-client.json", runtime / "config/google-client.json")
         command = [str(runtime / "ToolsTouch.Desktop.Tests.exe"), "--output", str(output),
                    "--host", str(workspace / "agent-host/dist/index.js"), "--node", str(workspace / "node/node.exe")]
         process = subprocess.Popen(command, cwd=workspace)

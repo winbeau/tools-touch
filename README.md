@@ -6,13 +6,15 @@ Windows 安装版：[前往 GitHub Releases](https://github.com/winbeau/tools-to
 
 已提供六页 WPF、研究服务、Pi 登录适配和 Gmail 流程实现，并补充原生 Windows 桌面回归检查；真实账号端到端验收仍未完成。完整范围与未完成项见 [实施记录](docs/IMPLEMENTATION.md)。
 
-Windows 使用、配置与打包步骤见 [WINDOWS.md](docs/WINDOWS.md)。更新后的便携包目标为 `artifacts/ToolsTouch-win-x64-v0.2.0-login.zip`，内含 .NET、Node 和 Pi 依赖；原生自动检查不等于真实账号完整验收。逐项证据与缺口见 [ACCEPTANCE.md](docs/ACCEPTANCE.md)。
+Windows 使用、配置与打包步骤见 [WINDOWS.md](docs/WINDOWS.md)。更新后的便携包目标为 `artifacts/ToolsTouch-win-x64-v0.2.1.zip`，内含 .NET、Node 和 Pi 依赖；原生自动检查不等于真实账号完整验收。逐项证据与缺口见 [ACCEPTANCE.md](docs/ACCEPTANCE.md)。
 
-## v0.2.0 账户与启动更新
+## v0.2.1 公众安装准备
 
-首次打开使用 Gmail 登录，登录邮箱同时作为投递邮箱，成功后进入工作台并加密保存登录状态。打开程序自动加载组件并显示进度；Settings 可选择服务商、浏览器授权、设备码或 API Key。修复 OpenAI 授权选项未提交导致后续登录一直忙碌的问题，增加取消和重试。Gmail 支持导入并校验桌面客户端 JSON、授权阶段显示和具体失败原因。安装包尚未提供有效 Google 客户端配置，需要在首次登录页导入后才能进入工作台；真实 Google/OpenAI 账户端到端验证仍需完成。
+首次打开使用 Gmail 登录，登录邮箱同时作为投递邮箱，成功后进入工作台并加密保存登录状态。打开程序自动加载组件并显示进度；Settings 可选择服务商、浏览器授权、设备码或 API Key。修复 OpenAI 授权选项未提交导致后续登录一直忙碌的问题，增加取消和重试。Gmail 支持导入并校验桌面客户端 JSON、授权阶段显示和具体失败原因。v0.2.1 安装包内置 Google 桌面客户端配置，普通用户无需导入 JSON。Gmail API 已启用，但 Google 应用仍处于测试状态，品牌资料和权限审核未完成，目前不能保证任意 Google 账号均可登录；真实 Google/OpenAI 账户端到端验证仍需完成。
 
 新增应用诊断日志及导出入口，保留 14 天，不记录密钥、授权码或正文。详细配置与发布者预置 Google 客户端的方法见 Windows 文档。
+
+应用主页与隐私说明：[GitHub Pages](https://winbeau.github.io/tools-touch/)。公开审核与打包要求见 [PUBLIC-RELEASE.md](docs/PUBLIC-RELEASE.md)。
 
 ## 已有核心验证
 
@@ -29,7 +31,7 @@ dotnet run --project tests/ToolsTouch.Core.Tests
 Windows 原生检查（额外需要 Python 3）会保存页面截图和 JSON 结果；所有测试使用隔离资料，不登录或发送真实邮件：
 
 ```powershell
-python scripts/test-windows.py --package artifacts/ToolsTouch-win-x64-v0.2.0-login --output artifacts/windows-check
+python scripts/test-windows.py --package artifacts/ToolsTouch-win-x64-v0.2.1 --output artifacts/windows-check
 ```
 
 v0.2.0 原生检查 12 组全部通过，包括六页及三个详情子页渲染、草稿编辑与空选择清理、DPAPI 跨进程读取、首次 Gmail 登录门槛与模拟回调、模型密钥配置、随包组件状态握手及退出死锁回归。WSL 交叉构建后的运行方法见 [Windows 原生检查](docs/WINDOWS.md#可重复的-windows-原生检查)。

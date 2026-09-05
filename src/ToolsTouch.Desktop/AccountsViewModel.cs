@@ -28,7 +28,7 @@ public sealed partial class MainViewModel
     private bool authBusy;
     private string componentStatus = "组件加载中…";
     private string providerStatus = "请等待组件加载。";
-    private string gmailProgress = "选择客户端配置后连接 Gmail。";
+    private string gmailProgress = "点击“使用 Google 登录”，在浏览器中完成授权。";
     private string authPrompt = "";
     private string? authPromptId;
     private string? authUrl;
@@ -49,6 +49,8 @@ public sealed partial class MainViewModel
     public string ProviderApiKey { get => providerApiKey; set { Set(ref providerApiKey, value); CommandManager.InvalidateRequerySuggested(); } }
     public string ProviderStatus { get => providerStatus; private set => Set(ref providerStatus, value); }
     public string GmailProgress { get => gmailProgress; private set => Set(ref gmailProgress, value); }
+    public bool GoogleClientBundled => File.Exists(Path.Combine(AppContext.BaseDirectory, "config", "google-client.json"));
+    public bool ShowGoogleSetup => !GoogleClientBundled;
     public string GmailClientName => string.IsNullOrWhiteSpace(Settings.GoogleClientFile) ? "未配置 Google 桌面 OAuth 客户端" : Path.GetFileName(Settings.GoogleClientFile);
     public string ComponentStatus { get => componentStatus; private set => Set(ref componentStatus, value); }
     public bool ComponentLoading { get => componentLoading; private set { Set(ref componentLoading, value); Raise(nameof(AccountControlsEnabled)); CommandManager.InvalidateRequerySuggested(); } }
@@ -297,7 +299,7 @@ public sealed partial class MainViewModel
         "AUTH_REJECTED" => "服务商拒绝授权，请检查账户权限并重新连接。",
         "AUTH_FAILED" => "授权未完成，请重试或改用其他授权方式；诊断事件已写入日志。",
         "COMPONENT_FILES_MISSING" => "组件文件不完整，请重新安装到 Windows 本地目录。",
-        "GMAIL_CLIENT_NOT_CONFIGURED" => "请先导入 Google 桌面应用 OAuth 客户端 JSON，再连接 Gmail。",
+        "GMAIL_CLIENT_NOT_CONFIGURED" => "此安装包缺少登录配置，请下载官方最新版或联系发布者。",
         "GMAIL_CLIENT_FILE_MISSING" => "找不到 Gmail 客户端配置，请重新导入 JSON 文件。",
         "GMAIL_CLIENT_INVALID" => "Google 客户端 JSON 无效，请导入桌面应用类型的客户端配置。",
         "GMAIL_CLIENT_NOT_DESKTOP" => "此配置不是 Google 桌面应用客户端，请使用 Desktop app 类型。",

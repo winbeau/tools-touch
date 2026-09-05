@@ -31,7 +31,7 @@ python scripts/test-installer.py --installer artifacts/release-v0.2.0-login/Tool
 
 授权成功后，刷新凭据由当前 Windows 用户 DPAPI 加密保存；下次打开保留登录。凭据缺失、损坏或无法解密时回到登录页。此版本是本地桌面应用，没有独立服务器账号或云端资料同步，研究资料仍保存在当前 Windows 用户的数据目录。
 
-Gmail 登录要求发布者先提供有效的 Google 桌面 OAuth 客户端配置。如果安装包未预置，可在登录页导入 JSON；没有配置时无法完成登录，也无法进入工作台。Google 测试模式还需将登录邮箱添加到项目测试用户中。
+v0.2.1 安装包已预置发布者的 Google 桌面登录配置，普通用户无需导入 JSON。Google 对外发布和权限审核由发布者完成；审核状态尚未验证，测试模式下仍仅允许项目测试用户。详见 PUBLIC-RELEASE.md。
 
 ## 首次配置
 
