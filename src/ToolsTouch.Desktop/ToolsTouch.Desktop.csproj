@@ -4,11 +4,12 @@
     <UseWPF>true</UseWPF><EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>ToolsTouch</AssemblyName>
     <Version>0.3.1</Version>
+    <!-- Preserve the explicit runtime dependency graph for Windows and cross-published packages. -->
+    <RestoreEnablePackagePruning>false</RestoreEnablePackagePruning>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../ToolsTouch.Application/ToolsTouch.Application.csproj" />
     <ProjectReference Include="../ToolsTouch.Infrastructure/ToolsTouch.Infrastructure.csproj" />
   </ItemGroup>
-  <!-- Keep the explicit DPAPI pin for cross-publishing; Windows SDKs also expose it through the desktop framework. -->
-  <ItemGroup><PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.9" NoWarn="NU1510" /></ItemGroup>
+  <ItemGroup><PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.9" /></ItemGroup>
 </Project>

@@ -537,3 +537,5 @@
 - Windows 全量 Core 回归补记：CI 33986495808 暴露 BackupService 目标 SQLite 连接池保留句柄、阻止暂存目录移动／清理的问题。已对备份目标／只读验证、导出快照及隔离恢复使用非池化连接；正式工作区仍默认保留连接池。新增备份／恢复后独占打开数据库的回归断言，Linux Core 已通过（0）；安装产物将重新生成，前述旧 SHA 与安装证据只对应初始候选，最终值以末尾补记及 Release 元数据为准。
 
 - CI 33986807457：Linux／Windows 全量 Core（含备份与恢复句柄回归）、Node 与 Python 均通过；Windows publish 被 SDK 的重复框架引用提示 NU1510 阻断。保留用于跨平台发布的显式 DPAPI 10.0.9 固定版本，仅在该 PackageReference 上处理 NU1510；不放宽其他警告或更改运行库。
+
+- CI SDK 补记：PackageReference 局部 NoWarn 未阻止 SDK 产生 NU1510（33987061031）。最终移除该无效元数据，在 Desktop 项目显式设置 RestoreEnablePackagePruning=false，维持现有显式依赖图，不全局抑制警告。依据 https://learn.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files 的 pruning 开关定义。
