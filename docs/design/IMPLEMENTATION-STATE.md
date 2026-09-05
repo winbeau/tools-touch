@@ -531,3 +531,5 @@
 - 可提交证据：docs/releases/v0.3.1-windows-check.json、v0.3.1-installer-check.json、v0.3.1-installer-upgrade.json；完整日志与页面截图保留在上述 artifacts 目录。Windows 11 10.0.26200／.NET 10.0.11 上执行。
 - 产物：安装器 104,203,125 字节，SHA-256 `4c3493c34eb3b49e6f241fd3a0fb3292af9c0903b2fa65c7c44f864130607de1`；便携 ZIP 154,240,231 字节，SHA-256 `3fc99a9a4ad62a1631c0c419ed5f0ccd014b9f3a798c057529ea08ab598d0e24`。安装器未签名。
 - 验收边界：自动原生运行和安装生命周期已验证；保留资料检查使用合成文件，不等于真实用户旧库完整业务验收。真实 Google／模型／Brave／学校来源、人工编辑导入导出恢复以及真实邮件仍未验收，U01—U11 继续 NotVerified。
+
+- 发布后 CI 补记：GitHub Actions 33986231797 的 Node／Python 通过，Core 因缺少 uv 失败，Windows 打包因报表测试使用默认文本编码失败。已为 Core job 增加固定 uv／Python 与 locked sync，并为报表 JSON fixture 读取显式指定 UTF-8；Linux 及 Windows 的 9 项 baoyan 测试均通过（0）。此补记仅改构建环境与测试，不改已验收的安装器或应用程序集。

@@ -65,7 +65,7 @@ class ReportTests(unittest.TestCase):
             args = argparse.Namespace(year=2026, deadline_from=date(2026, 9, 5), snapshot=snapshot, output_dir=root / "output")
             with patch("baoyan_report.Client", side_effect=AssertionError("snapshot must not access network")), redirect_stdout(io.StringIO()):
                 run(args)
-            rows = json.loads((args.output_dir / "匹配明细.json").read_text())
+            rows = json.loads((args.output_dir / "匹配明细.json").read_text(encoding="utf-8"))
             self.assertEqual([r["信息ID"] for r in rows], [3, 1, 5, 4, 2])
             wb = load_workbook(args.output_dir / "985-211预推免截止日期筛选.xlsx")
             ws = wb["匹配明细"]
