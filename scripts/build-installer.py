@@ -7,6 +7,7 @@ from pathlib import Path, PurePosixPath
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import zipfile
 
@@ -61,7 +62,8 @@ def main():
             prefix = manifest_name.rsplit("/", 1)[0] + "/"
             manifest_bytes = archive.read(manifest_name)
             manifest = json.loads(manifest_bytes)
-            required = {"ToolsTouch.exe", "ToolsTouch.dll", "ToolsTouch.Core.dll", "node/node.exe",
+            required = {"ToolsTouch.exe", "ToolsTouch.dll", "ToolsTouch.Core.dll",
+                        "ToolsTouch.Application.dll", "ToolsTouch.Infrastructure.dll", "node/node.exe",
                         "agent-host/dist/index.js", "python/python.exe", "python/python312.dll",
                         "python/Lib/site-packages/tools_touch_collector/__main__.py"}
             if manifest.get("platform") != "win-x64" or not required.issubset(manifest["files"]):
@@ -78,6 +80,8 @@ def main():
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
             (source / "BUILD-MANIFEST.json").write_bytes(manifest_bytes)
+        # Apply the same complete runtime/dependency contract as portable releases.
+        subprocess.run([sys.executable, str(ROOT / "scripts/verify-package.py"), str(source)], check=True)
         script = workspace / "installer.iss"
         shutil.copy2(ROOT / "scripts/installer.iss", script)
         executable_name = f"ToolsTouch-Setup-{args.version}-win-x64.exe"

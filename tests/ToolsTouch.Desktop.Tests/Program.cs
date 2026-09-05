@@ -37,12 +37,10 @@ internal static class Program
         Directory.CreateDirectory(output);
         var directory = Path.Combine(Path.GetTempPath(), "tools-touch-desktop-tests-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
-        var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        // Load the exact production styles without invoking App.OnStartup or the real user session.
-        var resources = System.Xml.Linq.XDocument.Load(Path.Combine(AppContext.BaseDirectory, "ApplicationResources.xaml"));
-        var dictionary = new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("ResourceDictionary", "http://schemas.microsoft.com/winfx/2006/xaml/presentation"),
-            resources.Root!.Attributes().Where(attribute => attribute.IsNamespaceDeclaration), resources.Root!.Elements().Single().Elements());
-        app.Resources = (ResourceDictionary)System.Windows.Markup.XamlReader.Parse(dictionary.ToString());
+        // Initialize compiled production resources (including merged dictionaries).
+        // Do not call Run: OnStartup would open the real user workspace.
+        var app = new App { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        app.InitializeComponent();
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(app.Dispatcher));
         MainViewModel? model = null;
         MainWindow? window = null;
@@ -210,9 +208,12 @@ internal static class Program
                 model.AutoOpenLoginBrowser = true;
             });
 
-            Test("six pages and detail tabs render without binding errors", () =>
+            Test("eleven pages and detail tabs render without binding errors", () =>
             {
-                Check(tabs.Items.Count == 9, "expected nine pages");
+                string[] expectedPages = ["Dashboard", "Discover", "Professors", "Professor Detail", "Outreach",
+                    "Applications", "Records", "Settings", "Admissions", "Faculty", "Recommendations"];
+                Check(tabs.Items.Cast<TabItem>().Select(tab => tab.Header.ToString()).SequenceEqual(expectedPages),
+                    "workspace navigation does not expose all eleven pages");
                 var firstGrid = Descendants<DataGrid>(window).First();
                 Check(firstGrid.EnableRowVirtualization && firstGrid.EnableColumnVirtualization &&
                     VirtualizingPanel.GetIsVirtualizing(firstGrid) && VirtualizingPanel.GetVirtualizationMode(firstGrid) == VirtualizationMode.Recycling &&

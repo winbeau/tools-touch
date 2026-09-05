@@ -1,0 +1,66 @@
+{
+  "platform": "Microsoft Windows NT 10.0.26200.0",
+  "runtime": "10.0.11",
+  "executedAt": "2026-09-05T18:58:00.839982+00:00",
+  "realAccountsUsed": false,
+  "realMailSent": false,
+  "failures": 0,
+  "results": [
+    {
+      "name": "DPAPI persistence, replacement, tamper detection and deletion",
+      "passed": true
+    },
+    {
+      "name": "isolated settings round trip",
+      "passed": true
+    },
+    {
+      "name": "first launch requires Gmail; failed login cannot unlock workspace",
+      "passed": true
+    },
+    {
+      "name": "Gmail login unlocks app, identifies sender and survives reopening",
+      "passed": true
+    },
+    {
+      "name": "window automatically loads components and provider catalogue",
+      "passed": true
+    },
+    {
+      "name": "native API key configuration, duplicate prevention and log redaction",
+      "passed": true
+    },
+    {
+      "name": "missing Gmail configuration is explained and can be retried",
+      "passed": true
+    },
+    {
+      "name": "manual browser mode copies the current model URL without opening a browser",
+      "passed": true
+    },
+    {
+      "name": "eleven pages and detail tabs render without binding errors",
+      "passed": true
+    },
+    {
+      "name": "recommendation center keeps scope, coverage and run comparison visible",
+      "passed": true
+    },
+    {
+      "name": "draft selection, editing, saving and refresh preserve the editor",
+      "passed": true
+    },
+    {
+      "name": "filtering away the selected professor clears dependent detail",
+      "passed": true
+    },
+    {
+      "name": "component retry and UI-thread shutdown",
+      "passed": true
+    },
+    {
+      "name": "no WPF binding errors during interactions",
+      "passed": true
+    }
+  ]
+}

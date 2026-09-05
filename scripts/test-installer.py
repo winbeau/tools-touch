@@ -18,11 +18,20 @@ UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{0C8D6389-
 
 
 def registration():
-    try:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, UNINSTALL_KEY, 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
-            return winreg.QueryValueEx(key, "InstallLocation")[0]
-    except FileNotFoundError:
-        return None
+    # Legacy installs may be registered in another registry view or scope.
+    for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+        for view in (winreg.KEY_WOW64_64KEY, winreg.KEY_WOW64_32KEY):
+            try:
+                key = winreg.OpenKey(hive, UNINSTALL_KEY, 0, winreg.KEY_READ | view)
+            except FileNotFoundError:
+                continue
+            with key:
+                try:
+                    return winreg.QueryValueEx(key, "InstallLocation")[0]
+                except FileNotFoundError:
+                    # An incomplete registration still belongs to an existing install.
+                    return ""
+    return None
 
 
 def run(command, cwd, timeout=300):
@@ -41,6 +50,7 @@ def run(command, cwd, timeout=300):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--installer", required=True, type=Path)
+    parser.add_argument("--previous-installer", type=Path, help="Optional previous release EXE for an actual upgrade check")
     parser.add_argument("--test-exe", required=True, type=Path, help="Self-contained Desktop.Tests executable")
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
@@ -69,10 +79,22 @@ def main():
         base = [str(installer), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/SP-", "/NORESTART", "/NOICONS",
                 "/TASKS=", f"/DIR={target}", f"/GROUP=Tools Touch Test {uuid.uuid4().hex}"]
         try:
+            if args.previous_installer:
+                previous = workspace / "previous-setup.exe"
+                shutil.copy2(args.previous_installer.resolve(), previous)
+                run([str(previous)] + base[1:] + [f"/LOG={output / 'previous-install.log'}"], workspace)
+                if Path(registration() or "").resolve() != target.resolve():
+                    raise RuntimeError("Previous installer registered outside the test directory")
+                upgrade_sentinel = target / "previous-version-user-file.txt"
+                upgrade_sentinel.write_text("Keep across upgrades.", encoding="utf-8")
             run(base + [f"/LOG={output / 'install.log'}"], workspace)
             if Path(registration() or "").resolve() != target.resolve():
                 raise RuntimeError("Per-user uninstall registration points to the wrong directory")
             checks.append("per-user installation and uninstall registration")
+            if args.previous_installer:
+                if upgrade_sentinel.read_text(encoding="utf-8") != "Keep across upgrades.":
+                    raise RuntimeError("Upgrade removed a user-created file")
+                checks.append("upgrade from previous installer preserves user-created files")
             print("PASS: per-user installation and uninstall registration", flush=True)
             manifest = json.loads((target / "BUILD-MANIFEST.json").read_text(encoding="utf-8"))
             for name, expected in manifest["files"].items():
@@ -100,12 +122,15 @@ def main():
             print("PASS: bundled Python runtime imports collector and production dependencies", flush=True)
             runtime = workspace / "tests"
             native.copy_tree(args.test_exe.resolve().parent, runtime)
+            if (target / "config/google-client.json").is_file():
+                (runtime / "config").mkdir(exist_ok=True)
+                shutil.copy2(target / "config/google-client.json", runtime / "config/google-client.json")
             for name in ("ToolsTouch.dll", "ToolsTouch.Core.dll", "ToolsTouch.Application.dll", "ToolsTouch.Infrastructure.dll"):
                 if (runtime / name).read_bytes() != (target / name).read_bytes():
                     raise RuntimeError("Desktop test assembly differs from installed assembly: " + name)
             run([str(runtime / "ToolsTouch.Desktop.Tests.exe"), "--output", str(output / "desktop"),
                  "--host", str(target / "agent-host/dist/index.js"), "--node", str(target / "node/node.exe")], workspace, 150)
-            checks.append("installed Node/Pi, identical desktop assemblies, seven native regression groups")
+            checks.append("installed Node/Pi and identical desktop assemblies pass native regression suite")
         finally:
             # Uninstall only if the registration still points at this exact temporary test directory.
             registered = registration()
@@ -125,6 +150,7 @@ def main():
         data_sentinel.unlink()
         legacy_database.unlink()
         report = {"passed": True, "installerSha256": hashlib.sha256(installer.read_bytes()).hexdigest(),
+                  "previousInstallerSha256": hashlib.sha256(args.previous_installer.read_bytes()).hexdigest() if args.previous_installer else None,
                   "checks": checks, "realAccountsUsed": False, "realMailSent": False}
         (output / "results.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
         print(json.dumps(report, indent=2))

@@ -97,14 +97,14 @@
       "id": "U11",
       "title": "分析／投递数据库及美观表格",
       "status": "NotVerified",
-      "automated_evidence": ["tests/ToolsTouch.Core.Tests/RecordWorkspaceTests.cs", "tests/ToolsTouch.Core.Tests/RecordEditingTests.cs", "tests/ToolsTouch.Core.Tests/RecordQueryTests.cs", "tests/ToolsTouch.Core.Tests/WorkspaceRoundTripTests.cs", "artifacts/implementation/P08-A/20260905T173000Z/results.json", "artifacts/implementation/P08-B/20260905T180000Z/results.json", "artifacts/implementation/P08-C/20260905T184500Z/results.json"],
-      "evidence_scope": "Typed custom tables, relations, views, edits, import/export/recovery, virtualization configuration and portable package contracts.",
+      "automated_evidence": ["tests/ToolsTouch.Core.Tests/RecordWorkspaceTests.cs", "tests/ToolsTouch.Core.Tests/RecordEditingTests.cs", "tests/ToolsTouch.Core.Tests/RecordQueryTests.cs", "tests/ToolsTouch.Core.Tests/WorkspaceRoundTripTests.cs", "artifacts/implementation/P08-A/20260905T173000Z/results.json", "artifacts/implementation/P08-B/20260905T180000Z/results.json", "artifacts/implementation/P08-C/20260905T184500Z/results.json", "docs/releases/v0.3.1-windows-check.json", "docs/releases/v0.3.1-installer-check.json"],
+      "evidence_scope": "Typed custom tables, relations, views, edits, import/export/recovery and package contracts; v0.3.1 additionally passed 14 native Windows groups, all eleven page renders, DPAPI and isolated install/repair/uninstall with user-file preservation.",
       "required_real_evidence": "Current Windows package rendered and operated by a user across editing, import, export, backup restore and send-state protection.",
-      "blocking_condition": "Current Linux host cannot run WPF; clean Windows user acceptance is still required."
+      "blocking_condition": "Native automated checks passed for v0.3.1; human editing/import/export/restore acceptance in a clean Windows user is still required."
     }
   ],
   "global_not_verified": [
-    "Native Windows WPF/DPAPI/install lifecycle for the P08-C package",
+    "Human Windows workflow acceptance; v0.3.1 native WPF/DPAPI and isolated installation automation passed",
     "Real provider/model/Gmail/Brave credentials and real mail delivery",
     "Source range and first school seed list"
   ]

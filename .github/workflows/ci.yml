@@ -83,3 +83,9 @@ jobs:
       - run: uv sync --all-packages --locked
       - run: uv run --all-packages --locked python scripts/package.py --output artifacts/ci-package
       - run: uv run --all-packages --locked python scripts/verify-package.py artifacts/ci-package
+      - run: uv run --all-packages --locked python scripts/test-windows.py --package artifacts/ci-package --output artifacts/windows-check
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-native-evidence
+          path: artifacts/windows-check

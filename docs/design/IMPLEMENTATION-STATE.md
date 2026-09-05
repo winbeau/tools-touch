@@ -518,3 +518,16 @@
 - 证据：`baoyan-cli/exports/985-211-预推免-2026-大学分组着色/`，含Excel、CSV、JSON、原始快照与查询说明。此次没有重新抓取，未进行官网、真实报名系统或Windows Excel原生验收。
 
 当前登录维护会话完成 v0.2.2 修复：Gmail 复用、复制登录链接、组件代理、模型凭据重启恢复。14 项组件测试、C# 核心回归及 13 组 Windows 原生检查通过；真实账号端到端验证未完成，Google 验证按用户要求暂停。详见 `../ACCEPTANCE.md` 的 v0.2.2 记录与 `../releases/v0.2.2.md`。未改变数据库迁移或协议，也未开始上述 P00—P08 新架构工作包；下一新架构工作仍为 P00-A。本补记不将设计功能标记完成。
+
+## 6. v0.3.1 安装器与 Windows 原生发布验收（2026-09-05）
+
+- 状态：Verified（安装交付与自动验收）；本次用户明确授权 add／commit／push／Release。已有 v0.3.0 预发布及标签保留，修复版使用 v0.3.1。
+- 实际变更：安装器构建增加四层程序集及完整 Node／Python 生产依赖校验；安装检查增加旧版 EXE 升级、两种注册表视图／安装范围保护及缺失注册值保护；Windows 测试直接加载编译后的 App 资源，检查全部 11 页；修复 Records 的 HasImportErrors 只读属性被 Expander 双向绑定导致的启动异常；版本、CI 原生检查、README／Windows 指南及真实验收矩阵同步。
+- 数据库迁移／协议：无变化，仍为 016／v2。恢复沿用已发布 v0.2.2 的 Google 桌面客户端配置，没有导入或发布用户登录令牌。
+- 实际失败与修复：原 v0.3.0 原生测试退出 1（资源字典加载错误）；修正测试入口后退出 1（HasImportErrors 双向绑定）；修复绑定后旧页面数量断言退出 1；改为核对全部 11 个页面后原生 14 组检查通过。失败证据保留在 artifacts/windows-check-v0.3.0-release、artifacts/windows-check-v0.3.0-release-r2、artifacts/windows-check-v0.3.1-prepackage。
+- 验证命令与退出码：设置 Linux Node 24.16.0／pnpm 10.14.0 的 PATH 和 DOTNET_EXE 后执行 `uv run --all-packages --locked python scripts/package.py --output artifacts/ToolsTouch-win-x64-v0.3.1 --public --google-client artifacts/ToolsTouch-win-x64-v0.2.2-r2/config/google-client.json`（0，Node 16、baoyan 9、collector 8、Core 可执行回归通过）；`uv run --all-packages --locked python scripts/verify-package.py artifacts/ToolsTouch-win-x64-v0.3.1`（0，15,286 文件哈希）；`dotnet publish tests/ToolsTouch.Desktop.Tests -c Release -r win-x64 --self-contained true -o artifacts/desktop-tests-v0.3.1-r2`（0）；Windows `python scripts/build-installer.py --package artifacts/ToolsTouch-win-x64-v0.3.1.zip --version 0.3.1 --output artifacts/release-v0.3.1`（0）。Windows Python 为 3.12.10，Linux uv workspace 为 3.12.12。
+- Windows 生命周期：通过 `uv run --isolated --no-project --no-config --python C:/Users/genev/AppData/Local/Programs/Python/Python312/python.exe python scripts/test-installer.py --installer artifacts/release-v0.3.1/ToolsTouch-Setup-0.3.1-win-x64.exe --test-exe artifacts/desktop-tests-v0.3.1-r2/ToolsTouch.Desktop.Tests.exe --output artifacts/installer-check-v0.3.1`（0）；另加 `--previous-installer artifacts/release-v0.2.2-r2/ToolsTouch-Setup-0.2.2-win-x64.exe`，输出改为 `artifacts/installer-upgrade-v0.3.1`（0）。两次均完成安装／逐文件校验／修复／随包 Python 导入／14 组原生回归／卸载保留用户文件；升级使用真实旧版安装 EXE。四个测试程序集和安装程序集逐字节一致；原本机 0.2.2 程序文件 SHA-256 前后相同。
+- 其他验证：三种安装注册保护模拟检查（0，无注册表写入）；发布脚本 py_compile、uv lock --check、验收矩阵与 git diff --check（均 0）。正式账号和邮件均未使用。
+- 可提交证据：docs/releases/v0.3.1-windows-check.json、v0.3.1-installer-check.json、v0.3.1-installer-upgrade.json；完整日志与页面截图保留在上述 artifacts 目录。Windows 11 10.0.26200／.NET 10.0.11 上执行。
+- 产物：安装器 104,203,125 字节，SHA-256 `4c3493c34eb3b49e6f241fd3a0fb3292af9c0903b2fa65c7c44f864130607de1`；便携 ZIP 154,240,231 字节，SHA-256 `3fc99a9a4ad62a1631c0c419ed5f0ccd014b9f3a798c057529ea08ab598d0e24`。安装器未签名。
+- 验收边界：自动原生运行和安装生命周期已验证；保留资料检查使用合成文件，不等于真实用户旧库完整业务验收。真实 Google／模型／Brave／学校来源、人工编辑导入导出恢复以及真实邮件仍未验收，U01—U11 继续 NotVerified。
