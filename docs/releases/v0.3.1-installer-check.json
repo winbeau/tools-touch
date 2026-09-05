@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "installerSha256": "4c3493c34eb3b49e6f241fd3a0fb3292af9c0903b2fa65c7c44f864130607de1",
+  "installerSha256": "4630bdcda6c9c71cacd100b872aaea6bf670a50b8ce585982b959faff71a22c6",
   "previousInstallerSha256": null,
   "checks": [
     "per-user installation and uninstall registration",

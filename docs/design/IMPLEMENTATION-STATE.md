@@ -541,3 +541,12 @@
 - CI SDK 补记：PackageReference 局部 NoWarn 未阻止 SDK 产生 NU1510（33987061031）。最终移除该无效元数据，在 Desktop 项目显式设置 RestoreEnablePackagePruning=false，维持现有显式依赖图，不全局抑制警告。依据 https://learn.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files 的 pruning 开关定义。
 
 - SDK 最终设置修订：33987332923 关闭 pruning 后出现额外的 System.Memory 还原失败。恢复默认依赖裁剪，仅在 Desktop 项目 NoWarn 中列出已核实的重复框架引用提示 NU1510；其余警告仍视为错误，运行依赖与已验证产物保持原配置。前两项 SDK 设置为排错记录，非最终方案。
+
+### v0.3.1 最终发布候选验收
+
+- 最终状态：Verified。最终产物覆盖上述初始候选；应用代码构建自 `5c53b72`，后续 SDK 配置仅调整构建提示处理，保留相同运行依赖。CI 的功能代码检查提交为 `5291044`。
+- 重新执行同一 package.py／build-installer.py 流程，包输出为 `artifacts/final-v0.3.1/ToolsTouch-win-x64-v0.3.1`，安装器输出为 `artifacts/release-v0.3.1-final`（均退出 0）；pnpm 使用已校验本地缓存（npm_config_offline=true）。新桌面测试发布到 `artifacts/desktop-tests-v0.3.1-final`（0）。
+- `test-installer.py` 对最终 EXE 重新执行全新安装与真实 v0.2.2 EXE 升级，证据为 `artifacts/installer-check-v0.3.1-final`、`artifacts/installer-upgrade-v0.3.1-final`（均 0）；每轮包含全部 15,286 文件哈希、修复、随包 Python、14 组原生桌面检查和卸载保留资料。原有 0.2.2 程序 SHA-256 仍未改变。
+- 最终 EXE：104,207,700 字节，SHA-256 `4630bdcda6c9c71cacd100b872aaea6bf670a50b8ce585982b959faff71a22c6`；最终 ZIP：154,240,617 字节，SHA-256 `cb621648587e7935f53b7fb06bb59d3ee26635bf88cce7fb3ea3c4e29d2796fd`。
+- GitHub Actions [33987555038](https://github.com/winbeau/tools-touch/actions/runs/33987555038) 的 Node、Python、Core、Windows package／包哈希／原生桌面检查全部 success；可提交摘要 `docs/releases/v0.3.1-ci-check.json`。三份安装／桌面 JSON 证据已替换为最终 EXE 的实际结果。
+- 最终公开交付仍为未签名测试版；真实账号、来源和人工完整业务验收边界保持不变。v0.3.0 旧标签与资产保留，v0.3.1 草稿在最终文件校验后公开。
