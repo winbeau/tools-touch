@@ -95,3 +95,13 @@ GitHub Release 随包提供安装器构建元数据、校验值和上述两份 J
 - 26236 个随包文件哈希验证通过；Windows 原生 12 组全部通过，证据目录 `artifacts/windows-check-v0.2.1-r3`。
 - 原生测试加载同一份生产界面资源，使用独立 Application，避免误触发真实应用启动与用户数据目录。测试与便携包的 Desktop/Core DLL 哈希一致。
 - Gmail API 已启用；Google 应用仍为 External / Testing，品牌/域名与权限审核未完成。真实账号登录及发送未完成验收，不宣称所有 Google 用户已可使用。
+
+
+## v0.2.2：登录复用、代理与手动浏览器（2026-09-05）
+
+- 最终包：`artifacts/ToolsTouch-win-x64-v0.2.2-r2.zip`。`scripts/package.py --public` 退出码 0：14 项组件测试与 C# 核心回归通过，Windows 发布成功。Google 桌面客户端仅在分发包中，不写入源码。
+- 原生检查：`scripts/test-windows.py --package artifacts/ToolsTouch-win-x64-v0.2.2-r2 --test-exe artifacts/desktop-tests-v0.2.2-r2/ToolsTouch.Desktop.Tests.exe --output artifacts/windows-check-v0.2.2-r2`，13 组全部通过。证据 `results.json` 时间为 2026-09-05 09:15:19 UTC，failures=0，realAccountsUsed=false，realMailSent=false；测试与最终包的 Desktop/Core 程序集 SHA-256 一致。
+- 覆盖 Gmail 重复连接不再次打开浏览器、加密身份恢复、手动复制登录链接且不自动打开浏览器、组件重启恢复已保存模型配置，以及原有界面和草稿回归。最终首次登录页与账户页截图已检查。
+- 实际 OpenAI SDK 使用隔离的合成凭据与模拟令牌响应，验证授权完成后保存、重新创建运行时仍识别账号；不等同真实账号授权。嵌套网络/保存错误仅输出固定错误码。
+- 本机无账号的公开授权元数据请求：原组件环境 HTTP 403；启用已有代理及 Node 环境代理支持后 HTTP 200。该探测不证明真实令牌交换成功。
+- 用户报告 Google 切为正式发布后已能登录；Google 验证按用户要求暂缓。本版没有再次进行真实 Google/OpenAI 账号端到端验收，也没有发送真实邮件。安装脚本未改动，未重复 v0.1.0 的完整安装/卸载生命周期验收。

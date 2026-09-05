@@ -8,6 +8,13 @@ static class AccountTests
 {
     public static async Task RunAsync(string directory)
     {
+        var environment = new Dictionary<string, string?> { ["NO_PROXY"] = "internal.example" };
+        AgentProxy.Configure(environment, new WebProxy("http://127.0.0.1:12345"));
+        Check(environment["HTTPS_PROXY"] == "http://127.0.0.1:12345/" && environment["NODE_USE_ENV_PROXY"] == "1", "model host lost system proxy");
+        Check(environment["NO_PROXY"]!.Contains("127.0.0.1") && environment["NO_PROXY"]!.Contains("internal.example"), "OAuth callback proxy bypass missing");
+        environment["HTTPS_PROXY"] = "http://explicit.example:8080";
+        AgentProxy.Configure(environment, new WebProxy("http://127.0.0.1:12345"));
+        Check(environment["HTTPS_PROXY"] == "http://explicit.example:8080", "explicit proxy overwritten");
         var log = new DiagnosticLog(directory);
         const string secret = "synthetic-secret-should-never-be-logged";
         var error = new HttpRequestException("https://example.org?code=" + secret, new Exception(secret));

@@ -3,18 +3,18 @@ import { join, resolve } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
-import { ModelRuntime, type AgentSession } from "@earendil-works/pi-coding-agent";
+import { type AgentSession } from "@earendil-works/pi-coding-agent";
 import { createTools, toolNames } from "./tools.js";
 import { outputSchemas, parseOutput } from "./outputs.js";
 import { createBusinessSession } from "./session.js";
 import { Authentication } from "./authentication.js";
+import { createAccountRuntime } from "./runtime.js";
 
 // Dedicated application Pi directory; never point this at the Gmail credential directory.
 const root = resolve(process.argv[2] ?? join(process.cwd(), ".tools-touch-pi"));
 mkdirSync(root, { recursive: true });
 const emit = (value: unknown) => process.stdout.write(JSON.stringify(value) + "\n");
-const runtime = await ModelRuntime.create({ authPath: join(root, "auth.json"), modelsPath: null,
-  modelsStorePath: join(root, "models-store.json"), refreshOnCreate: false });
+const runtime = await createAccountRuntime(root);
 const string = Type.String({ minLength: 1, maxLength: 100000 });
 const commandSchema = Type.Union([
   Type.Object({ type: Type.Literal("status"), id: string, provider: Type.Optional(string) }, { additionalProperties: false }),

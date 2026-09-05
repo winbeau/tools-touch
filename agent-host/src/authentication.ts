@@ -2,12 +2,18 @@ import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 
 export type LoginCommand = { id: string; provider?: string; auth_type?: "oauth" | "api_key"; method?: string; secret?: string };
 export function authErrorCode(error: unknown): string {
-  const value = error instanceof Error ? error : undefined;
-  const cause = value?.cause as { code?: string } | undefined;
-  const message = value?.message ?? "";
+  const chain: string[] = [];
+  let current: unknown = error;
+  for (let n = 0; current instanceof Error && n < 6; n++) {
+    chain.push(current.message, String((current as NodeJS.ErrnoException).code ?? ""));
+    current = current.cause;
+  }
+  // Classify nested SDK causes without emitting raw messages, tokens, or URLs.
+  const message = chain.join(" ");
   if (/EADDRINUSE|address already in use/i.test(message)) return "AUTH_CALLBACK_PORT_BUSY";
   if (/state.*mismatch|state.*invalid/i.test(message)) return "AUTH_STATE_MISMATCH";
-  if (/fetch failed|ECONN|ENOTFOUND|ETIMEDOUT|network/i.test(message + " " + (cause?.code ?? ""))) return "AUTH_NETWORK_FAILED";
+  if (/fetch failed|ECONN|ENOTFOUND|ETIMEDOUT|UND_ERR_CONNECT_TIMEOUT|network/i.test(message)) return "AUTH_NETWORK_FAILED";
+  if (/EACCES|EPERM|EROFS|ENOSPC/i.test(message)) return "AUTH_CREDENTIAL_SAVE_FAILED";
   if (/401|403|access.denied|invalid.grant/i.test(message)) return "AUTH_REJECTED";
   return "AUTH_FAILED";
 }
@@ -56,7 +62,12 @@ export class Authentication {
             const id = crypto.randomUUID();
             return await new Promise<string>((resolve, reject) => {
               const cleanup = () => { this.prompts.delete(id); signal.removeEventListener("abort", abort); this.emit({ type: "auth_prompt_closed", prompt_id: id }); };
-              const abort = () => { cleanup(); reject(new Error("AUTH_CANCELLED")); };
+              const abort = () => {
+                cleanup();
+                if (prompt.type === "manual_code" && !controller.signal.aborted)
+                  this.emit({ type: "auth_progress", provider, stage: "verifying_credentials" });
+                reject(new Error("AUTH_CANCELLED"));
+              };
               this.prompts.set(id, value => {
                 if (prompt.type === "select" && !prompt.options.some(option => option.id === value)) return false;
                 cleanup(); resolve(value); return true;

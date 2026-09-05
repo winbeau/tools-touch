@@ -67,12 +67,16 @@ public sealed class GmailAuth(HttpClient client, ISecretStore secrets, Func<Goog
     public static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     public static string Challenge(string verifier) => Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
 
-    public async Task ConnectAsync(Action<Uri> openBrowser, CancellationToken cancellationToken = default)
+    public async Task ConnectAsync(Action<Uri> openBrowser, CancellationToken cancellationToken = default, bool forceReauthorize = false)
     {
         await gate.WaitAsync(cancellationToken);
         try
         {
             var config = clientConfig();
+            LoadCredential();
+            // A repeated connect (including queued clicks) reuses the same Gmail/app identity.
+            // Explicit reauthorization remains available when Google has revoked the credential.
+            if (!forceReauthorize && credential?.ClientId == config.ClientId) return;
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(TimeSpan.FromMinutes(5));
             var token = timeout.Token;

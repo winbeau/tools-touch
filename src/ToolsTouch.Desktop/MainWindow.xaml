@@ -14,6 +14,9 @@
           <TextBlock Text="使用 Gmail 登录 Tools Touch" FontSize="28" FontWeight="SemiBold" Foreground="#182B3A" Margin="0,0,0,16"/>
           <TextBlock Text="首次使用请先登录。这个 Gmail 既是你的应用账号，也是之后投递邮件的发件邮箱。" FontSize="16" Margin="0,0,0,20"/>
           <Button Content="使用 Google 登录" Command="{Binding ConnectGmailCommand}" Background="#167D8D" Foreground="White" FontSize="16" Padding="24,14" HorizontalAlignment="Left"/>
+          <CheckBox Content="自动打开默认浏览器" IsChecked="{Binding AutoOpenLoginBrowser}" Margin="0,8"/>
+          <Button Content="复制 Gmail 登录链接" Command="{Binding CopyGmailLoginUrlCommand}" HorizontalAlignment="Left"/>
+          <Button Content="打开诊断日志" Command="{Binding OpenLogsCommand}" HorizontalAlignment="Left"/>
           <Button Content="取消登录" Command="{Binding CancelGmailCommand}" HorizontalAlignment="Left"/>
           <TextBlock Text="{Binding GmailProgress}" Foreground="#167D8D" Margin="0,8,0,16"/>
           <TextBlock Text="授权完成后自动进入工作台，下次打开保留登录。发送邮件前仍需你逐封确认。" Foreground="#526774" Margin="0,0,0,20"/>
@@ -84,11 +87,12 @@
           <TextBlock Text="账户与工作资料" FontSize="24" FontWeight="SemiBold"/>
           <TextBlock Text="模型账户" FontSize="18" FontWeight="SemiBold" Margin="0,18,0,6"/>
           <TextBlock Text="服务商"/><ComboBox ItemsSource="{Binding Providers}" SelectedItem="{Binding SelectedProvider}" DisplayMemberPath="Name" IsEnabled="{Binding AccountControlsEnabled}" MinWidth="350" Margin="0,4,0,12"/>
+          <CheckBox Content="自动打开默认浏览器（关闭后可复制链接手动登录）" IsChecked="{Binding AutoOpenLoginBrowser}" Margin="0,8"/>
           <TextBlock Text="授权方式"/><ComboBox ItemsSource="{Binding LoginMethods}" SelectedItem="{Binding SelectedLoginMethod}" DisplayMemberPath="Label" IsEnabled="{Binding AccountControlsEnabled}" Margin="0,4,0,12"/>
           <StackPanel Visibility="{Binding ApiKeyRequired, Converter={StaticResource BoolVisibility}}"><TextBlock Text="API Key"/><PasswordBox x:Name="ProviderKeyBox" PasswordChanged="ProviderSecretChanged" IsEnabled="{Binding AccountControlsEnabled}" Padding="8" Margin="0,4,0,12"/></StackPanel>
           <TextBlock Text="{Binding ProviderStatus}" Foreground="#167D8D"/>
           <ProgressBar Height="4" IsIndeterminate="True" Margin="0,8" Visibility="{Binding AuthBusy, Converter={StaticResource BoolVisibility}}"/>
-          <WrapPanel><Button Content="连接账户 / 保存密钥" Command="{Binding LoginCommand}"/><Button Content="重新打开授权页" Command="{Binding OpenLoginCommand}"/><Button Content="取消授权" Command="{Binding CancelAuthCommand}"/></WrapPanel>
+          <WrapPanel><Button Content="连接账户 / 保存密钥" Command="{Binding LoginCommand}"/><Button Content="复制登录链接" Command="{Binding CopyLoginUrlCommand}"/><Button Content="重新打开授权页" Command="{Binding OpenLoginCommand}"/><Button Content="取消授权" Command="{Binding CancelAuthCommand}"/></WrapPanel>
           <TextBlock Text="{Binding AuthPrompt}"/>
           <ComboBox ItemsSource="{Binding AuthChoices}" SelectedItem="{Binding SelectedAuthChoice}" DisplayMemberPath="Label" Visibility="{Binding HasAuthChoices, Converter={StaticResource BoolVisibility}}" Margin="0,4,0,12"/>
           <TextBox Text="{Binding AuthReply, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding AuthText, Converter={StaticResource BoolVisibility}}"/>
@@ -97,7 +101,7 @@
           <TextBlock Text="模型"/><ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding Settings.Model}" IsEnabled="{Binding AccountControlsEnabled}" MinWidth="350" Margin="0,4,0,14"/>
           <TextBlock Text="Gmail" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="{Binding GmailStatus}" Margin="0,6"/>
           <TextBlock Text="{Binding GmailProgress}" Foreground="#167D8D" Margin="0,6"/>
-          <WrapPanel><Button Content="连接 Gmail" Command="{Binding ConnectGmailCommand}"/><Button Content="取消 Gmail 授权" Command="{Binding CancelGmailCommand}"/></WrapPanel>
+          <WrapPanel><Button Content="{Binding GmailConnectLabel}" Command="{Binding ConnectGmailCommand}"/><Button Content="重新授权 Gmail" Command="{Binding ReauthorizeGmailCommand}"/><Button Content="复制 Gmail 登录链接" Command="{Binding CopyGmailLoginUrlCommand}"/><Button Content="取消 Gmail 授权" Command="{Binding CancelGmailCommand}"/></WrapPanel>
           <TextBlock Text="Gmail 同时是应用账号与投递邮箱。官方安装版已经包含登录配置，你只需在 Google 页面选择自己的账号并授权。" Foreground="#526774" Margin="0,8,0,16"/>
           <Expander Header="开发者连接配置" Visibility="{Binding ShowGoogleSetup, Converter={StaticResource BoolVisibility}}"><StackPanel><TextBlock Text="{Binding GmailClientName}"/><Button Content="导入 Google 客户端配置" Command="{Binding ImportGoogleClientCommand}" HorizontalAlignment="Left"/></StackPanel></Expander>
           <TextBlock Text="CV 与确认后的经历" FontSize="18" FontWeight="SemiBold"/><Button Content="导入 CV.pdf" Command="{Binding ImportCvCommand}" HorizontalAlignment="Left"/>

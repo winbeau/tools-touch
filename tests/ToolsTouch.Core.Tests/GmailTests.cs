@@ -46,6 +46,11 @@ static class GmailTests
         Check(auth.Account == "sender@example.org" && await auth.AccessTokenAsync(default) == "test-access" && tokenCalls == 1, "OAuth account and in-memory access caching");
         Check(secrets.Value!.Contains("test-refresh") && !secrets.Value.Contains("test-access"), "persist refresh credential only");
 
+        await auth.ConnectAsync(_ => throw new Exception("Repeated connect opened a second browser"));
+        var reopened = new GmailAuth(oauthHttp, secrets, () => new("test-client", "test-client-secret"));
+        await reopened.ConnectAsync(_ => throw new Exception("Reopened app requested Gmail authorization again"));
+        Check(reopened.Account == "sender@example.org" && tokenCalls == 1, "saved Gmail identity was not reused");
+
         var outreach = new OutreachService(database);
         var draft = outreach.CreateDraft("prof", "recipient@example.org", "研究合作", "Hello\nResearch proposal", null, "gmail-send");
         var statusCode = HttpStatusCode.OK;

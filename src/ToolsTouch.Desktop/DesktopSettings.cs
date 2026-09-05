@@ -9,6 +9,7 @@ public sealed class DesktopSettings
 {
     public string NodePath { get; set; } = File.Exists(Path.Combine(AppContext.BaseDirectory, "node", "node.exe")) ? Path.Combine(AppContext.BaseDirectory, "node", "node.exe") : "node";
     public string AgentHostPath { get; set; } = Path.Combine(AppContext.BaseDirectory, "agent-host", "dist", "index.js");
+    public bool AutoOpenLoginBrowser { get; set; } = true;
     public string Model { get; set; } = "";
     public string Provider { get; set; } = "openai-codex";
     public int MaxToolCalls { get; set; } = 30;

@@ -120,10 +120,11 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
     public ICommand ReconcileCommand { get; }
     public ICommand SyncRepliesCommand { get; }
 
-    public MainViewModel(string? dataDirectory = null, HttpClient? accountHttp = null, Action<Uri>? openAccountBrowser = null)
+    public MainViewModel(string? dataDirectory = null, HttpClient? accountHttp = null, Action<Uri>? openAccountBrowser = null, Action<string>? copyAccountUrl = null)
     {
         if (accountHttp != null) http = accountHttp;
-        if (openAccountBrowser != null) gmailBrowser = openAccountBrowser;
+        if (openAccountBrowser != null) loginBrowser = openAccountBrowser;
+        if (copyAccountUrl != null) copyLoginUrl = copyAccountUrl;
         Settings = DesktopSettings.Load(dataDirectory);
         Directory.CreateDirectory(DataDirectory);
         diagnostics = new DiagnosticLog(DataDirectory);

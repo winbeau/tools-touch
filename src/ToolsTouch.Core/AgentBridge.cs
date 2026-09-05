@@ -48,6 +48,12 @@ public sealed class AgentBridge : IAgentBridge, IAsyncDisposable
         var environment = start.Environment.Where(pair => keep.Contains(pair.Key, StringComparer.OrdinalIgnoreCase)).ToArray();
         start.Environment.Clear();
         foreach (var pair in environment) start.Environment[pair.Key] = pair.Value;
+        foreach (var key in new[] { "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY" })
+        {
+            var value = Environment.GetEnvironmentVariable(key.ToLowerInvariant()) ?? Environment.GetEnvironmentVariable(key);
+            if (!string.IsNullOrWhiteSpace(value)) start.Environment[key] = value;
+        }
+        AgentProxy.Configure(start.Environment, HttpClient.DefaultProxy);
         process = Process.Start(start) ?? throw new InvalidOperationException("AGENT_START_FAILED");
         diagnostics?.Write("component", "process_started");
         pump = PumpAsync();

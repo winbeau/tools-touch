@@ -96,8 +96,11 @@ internal static class Program
             var sent = outreach.CreateDraft(professor.Id, "test@example.org", "已发送状态 · 替身记录", "测试替身，没有发送邮件。", null, "test-sent");
             outreach.SendAsync(sent.Id, new TestTransport()).GetAwaiter().GetResult();
             Task? googleCallback = null;
+            var browserOpens = 0;
+            string? copiedUrl = null;
             model = new MainViewModel(directory, new HttpClient(new GoogleHandler()), uri =>
             {
+                browserOpens++;
                 var query = uri.Query[1..].Split('&').Select(pair => pair.Split('=', 2)).ToDictionary(pair => pair[0], pair => Uri.UnescapeDataString(pair[1]));
                 googleCallback = Task.Run(async () =>
                 {
@@ -105,7 +108,7 @@ internal static class Program
                     using var response = await callback.GetAsync(query["redirect_uri"] + "?code=synthetic-code&state=" + query["state"]);
                     Check(response.IsSuccessStatusCode, "Google callback failed");
                 });
-            });
+            }, url => copiedUrl = url);
             window = new MainWindow { DataContext = model, ShowActivated = false, ShowInTaskbar = false, Left = -20000, Top = -20000 };
             using var bindings = new BindingErrors();
             PresentationTraceSources.DataBindingSource.Listeners.Add(bindings);
@@ -135,6 +138,8 @@ internal static class Program
                 Check(((FrameworkElement)window.FindName("WorkspacePanel")).Visibility == Visibility.Visible, "login did not reveal workspace");
                 var restored = new GmailAuth(new HttpClient(), new WindowsSecretStore(directory), () => GoogleClient.FromFile(config));
                 Check(restored.Account == model.SignedInAccount, "login did not persist in protected storage");
+                model.ConnectGmailCommand.Execute(null); Pump();
+                Check(browserOpens == 1 && !model.ConnectGmailCommand.CanExecute(null), "already connected Gmail opens authorization again");
             });
             Test("window automatically loads components and provider catalogue", () =>
             {
@@ -165,9 +170,23 @@ internal static class Program
             Test("missing Gmail configuration is explained and can be retried", () =>
             {
                 model.Settings.GoogleClientFile = "";
-                model.ConnectGmailCommand.Execute(null); Pump();
+                model.ReauthorizeGmailCommand.Execute(null); Pump();
                 Check(model.GmailProgress.Contains("登录配置") && !model.GmailProgress.Contains("RUN_BUSY"), "missing configuration not explained");
-                Check(model.ConnectGmailCommand.CanExecute(null), "failed Gmail login blocks retry");
+                Check(model.ReauthorizeGmailCommand.CanExecute(null), "failed Gmail login blocks retry");
+            });
+
+            Test("manual browser mode copies the current model URL without opening a browser", () =>
+            {
+                model.AutoOpenLoginBrowser = false;
+                var receive = typeof(MainViewModel).GetMethod("OnAgentEvent", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+                typeof(MainViewModel).GetProperty("AuthBusy")!.SetValue(model, true);
+                receive.Invoke(model, [JsonSerializer.SerializeToElement(new { type = "auth_url", url = "https://example.org/authorize?state=synthetic" })]); Pump();
+                model.CopyLoginUrlCommand.Execute(null); Pump();
+                Check(browserOpens == 1 && copiedUrl == "https://example.org/authorize?state=synthetic", "copy-only mode launched a browser or copied the wrong URL");
+                receive.Invoke(model, [JsonSerializer.SerializeToElement(new { type = "auth_finished", ok = false, code = "AUTH_NETWORK_FAILED" })]); Pump();
+                Check(!model.CopyLoginUrlCommand.CanExecute(null), "expired login URL can still be copied");
+                Check(!DesktopSettings.Load(directory).AutoOpenLoginBrowser, "manual browser preference did not persist");
+                model.AutoOpenLoginBrowser = true;
             });
 
             Test("six pages and detail tabs render without binding errors", () =>
@@ -235,6 +254,7 @@ internal static class Program
                 model.Settings.AgentHostPath = originalHost;
                 model.ConnectAgentCommand.Execute(null);
                 WaitFor(() => model.ComponentReady, 100);
+                Check(model.Providers.Single(provider => provider.Id == "deepseek").Configured, "component restart forgot the saved model account");
                 Check(Task.Run(async () => await model.DisposeAsync()).Wait(TimeSpan.FromSeconds(10)), "connected application deadlocked during shutdown");
                 model = null;
             });

@@ -16,7 +16,8 @@ public sealed record AccountOption(string Id, string Label);
 public sealed partial class MainViewModel
 {
     private DiagnosticLog diagnostics = null!;
-    private Action<Uri> gmailBrowser = uri => OpenUrl(uri.AbsoluteUri);
+    private Action<Uri> loginBrowser = uri => OpenUrl(uri.AbsoluteUri);
+    private Action<string> copyLoginUrl = System.Windows.Clipboard.SetText;
     public bool IsSignedIn => gmailAuth.Account != null;
     public bool NeedsSignIn => !IsSignedIn;
     public string SignedInAccount => gmailAuth.Account ?? "尚未登录";
@@ -32,6 +33,17 @@ public sealed partial class MainViewModel
     private string authPrompt = "";
     private string? authPromptId;
     private string? authUrl;
+    private string? lastOpenedAuthUrl;
+    private string? gmailAuthUrl;
+    public bool AutoOpenLoginBrowser
+    {
+        get => Settings.AutoOpenLoginBrowser;
+        set { if (Settings.AutoOpenLoginBrowser == value) return; Settings.AutoOpenLoginBrowser = value; Settings.Save(); Raise(); }
+    }
+    public string GmailConnectLabel => IsSignedIn ? "Gmail 已连接" : "使用 Google 登录";
+    public ICommand CopyLoginUrlCommand { get; private set; } = null!;
+    public ICommand CopyGmailLoginUrlCommand { get; private set; } = null!;
+    public ICommand ReauthorizeGmailCommand { get; private set; } = null!;
     private bool authSecret;
     private string providerApiKey = "";
     private ModelProvider? selectedProvider;
@@ -97,7 +109,7 @@ public sealed partial class MainViewModel
         UiCommand Command(Func<Task> action, Func<bool>? enabled = null) => new(action, ReportError, enabled);
         ConnectAgentCommand = Command(ConnectAgentAsync, () => !Busy && !AuthBusy && !ComponentLoading);
         LoginCommand = Command(LoginAsync, () => AccountControlsEnabled && SelectedLoginMethod != null && (!ApiKeyRequired || !string.IsNullOrWhiteSpace(ProviderApiKey)));
-        OpenLoginCommand = Command(() => { if (authUrl != null) OpenUrl(authUrl); return Task.CompletedTask; }, () => AuthBusy && authUrl != null);
+        OpenLoginCommand = Command(() => { if (authUrl != null) loginBrowser(new Uri(authUrl)); return Task.CompletedTask; }, () => AuthBusy && authUrl != null);
         AuthReplyCommand = Command(async () =>
         {
             var value = AuthChoices.Count > 0 ? SelectedAuthChoice?.Id : AuthReply;
@@ -106,7 +118,10 @@ public sealed partial class MainViewModel
             AuthReply = ""; Raise(nameof(AuthReply));
         }, () => AuthBusy && authPromptId != null && (AuthChoices.Count > 0 ? SelectedAuthChoice != null : !string.IsNullOrWhiteSpace(AuthReply)));
         CancelAuthCommand = Command(async () => { if (bridge != null) await bridge.CancelAsync(); }, () => AuthBusy);
-        ConnectGmailCommand = Command(ConnectGmailAsync, () => !mailBusy);
+        CopyLoginUrlCommand = Command(() => { copyLoginUrl(authUrl!); ProviderStatus = "登录链接已复制，请在同一台电脑的浏览器中打开。"; return Task.CompletedTask; }, () => AuthBusy && authUrl != null);
+        CopyGmailLoginUrlCommand = Command(() => { copyLoginUrl(gmailAuthUrl!); return Task.CompletedTask; }, () => gmailCancellation != null && gmailAuthUrl != null);
+        ConnectGmailCommand = Command(() => ConnectGmailAsync(), () => !mailBusy && !IsSignedIn);
+        ReauthorizeGmailCommand = Command(() => ConnectGmailAsync(true), () => !mailBusy && IsSignedIn);
         CancelGmailCommand = Command(() => { gmailCancellation?.Cancel(); return Task.CompletedTask; }, () => gmailCancellation != null);
         ImportGoogleClientCommand = Command(() =>
         {
@@ -198,7 +213,7 @@ public sealed partial class MainViewModel
     }
     private async Task LoginAsync()
     {
-        AuthBusy = true; ProviderStatus = "正在准备授权…"; ClearAuthPrompt();
+        AuthBusy = true; authUrl = null; lastOpenedAuthUrl = null; ProviderStatus = "正在准备授权…"; ClearAuthPrompt();
         var provider = SelectedProvider!.Id; var method = SelectedLoginMethod!.Id;
         diagnostics.Write("auth", "started", provider);
         try
@@ -213,19 +228,25 @@ public sealed partial class MainViewModel
         }
         catch { AuthBusy = false; throw; }
     }
-    private async Task ConnectGmailAsync()
+    private async Task ConnectGmailAsync(bool forceReauthorize = false)
     {
         mailBusy = true; gmailCancellation = new(); GmailProgress = "正在检查 Gmail 配置…"; CommandManager.InvalidateRequerySuggested();
         try
         {
             _ = GoogleClient.FromFile(Settings.GoogleClientFile);
             Settings.Save(); diagnostics.Write("gmail", "started");
-            await gmailAuth.ConnectAsync(gmailBrowser, gmailCancellation.Token);
-            Raise(nameof(GmailStatus)); Raise(nameof(IsSignedIn)); Raise(nameof(NeedsSignIn)); Raise(nameof(SignedInAccount)); Raise(nameof(AccountControlsEnabled));
+            await gmailAuth.ConnectAsync(uri =>
+            {
+                gmailAuthUrl = uri.AbsoluteUri;
+                CommandManager.InvalidateRequerySuggested();
+                if (AutoOpenLoginBrowser) loginBrowser(uri);
+                else GmailProgress = "登录链接已准备好，请点击复制链接，在选定的浏览器中打开。";
+            }, gmailCancellation.Token, forceReauthorize);
+            Raise(nameof(GmailStatus)); Raise(nameof(GmailConnectLabel)); Raise(nameof(IsSignedIn)); Raise(nameof(NeedsSignIn)); Raise(nameof(SignedInAccount)); Raise(nameof(AccountControlsEnabled));
             GmailProgress = "登录成功，此 Gmail 也是投递邮箱。"; Status = GmailProgress; diagnostics.Write("gmail", "connected");
         }
         catch (Exception error) { GmailProgress = error is OperationCanceledException ? "Gmail 授权已取消。" : Explain(DiagnosticLog.ErrorCode(error)); ReportError(error); }
-        finally { mailBusy = false; gmailCancellation.Dispose(); gmailCancellation = null; CommandManager.InvalidateRequerySuggested(); }
+        finally { mailBusy = false; gmailAuthUrl = null; gmailCancellation.Dispose(); gmailCancellation = null; CommandManager.InvalidateRequerySuggested(); }
     }
     private async Task CancelCurrentAsync()
     {
@@ -247,9 +268,17 @@ public sealed partial class MainViewModel
             case "auth_device_code":
                 authUrl = message.GetProperty("url").GetString();
                 ProviderStatus = type == "auth_device_code" ? "请在授权页输入设备码：" + message.GetProperty("code").GetString() : "正在等待浏览器授权…";
-                try { OpenUrl(authUrl!); } catch (Exception error) { diagnostics.Write("auth", "browser_failed", error: error); ProviderStatus += " 浏览器未能自动打开，请点击重新打开授权页。"; }
+                if (!AutoOpenLoginBrowser) ProviderStatus += " 请复制登录链接，在选定的浏览器中打开。";
+                else if (authUrl != null && authUrl != lastOpenedAuthUrl)
+                {
+                    lastOpenedAuthUrl = authUrl;
+                    try { loginBrowser(new Uri(authUrl)); } catch (Exception error) { diagnostics.Write("auth", "browser_failed", error: error); ProviderStatus += " 浏览器未能自动打开，请复制链接或重新打开授权页。"; }
+                }
                 break;
-            case "auth_progress": break;
+            case "auth_progress":
+                if (message.TryGetProperty("stage", out var stage) && stage.GetString() == "verifying_credentials")
+                    ProviderStatus = "已收到浏览器授权，正在验证并保存凭据…请以程序显示的结果为准。";
+                break;
             case "auth_prompt":
                 authPromptId = message.GetProperty("prompt_id").GetString();
                 var kind = message.GetProperty("kind").GetString(); AuthSecret = kind == "secret";
@@ -264,7 +293,7 @@ public sealed partial class MainViewModel
             case "auth_finished":
                 authUrl = null; ClearAuthPrompt();
                 if (message.GetProperty("ok").GetBoolean()) _ = FinishLoginAsync();
-                else { AuthBusy = false; ProviderStatus = Explain(message.GetProperty("code").GetString()!); }
+                else { AuthBusy = false; ProviderStatus = Explain(message.GetProperty("code").GetString()!); Status = ProviderStatus; }
                 break;
             case "host_disconnected":
                 ComponentReady = false; AuthBusy = false; ClearAuthPrompt();
@@ -295,7 +324,8 @@ public sealed partial class MainViewModel
         "AUTH_IN_PROGRESS" => "授权正在进行，请完成浏览器步骤，或先取消本次授权。",
         "AUTH_CANCELLED" => "授权已取消或超时，可以重新连接。",
         "AUTH_CALLBACK_PORT_BUSY" => "授权回调端口已被占用，请改用设备码授权，或关闭其他授权窗口后重试。",
-        "AUTH_NETWORK_FAILED" => "无法连接服务商授权服务器，请检查网络或代理设置后重试。",
+        "AUTH_NETWORK_FAILED" => "浏览器授权后的令牌交换或连接失败，请检查网络和系统代理后重试；浏览器显示成功不代表凭据已保存。",
+        "AUTH_CREDENTIAL_SAVE_FAILED" => "授权已完成，但凭据保存失败，请检查本机资料目录的写入权限。",
         "AUTH_REJECTED" => "服务商拒绝授权，请检查账户权限并重新连接。",
         "AUTH_FAILED" => "授权未完成，请重试或改用其他授权方式；诊断事件已写入日志。",
         "COMPONENT_FILES_MISSING" => "组件文件不完整，请重新安装到 Windows 本地目录。",
@@ -305,7 +335,7 @@ public sealed partial class MainViewModel
         "GMAIL_CLIENT_NOT_DESKTOP" => "此配置不是 Google 桌面应用客户端，请使用 Desktop app 类型。",
         "GMAIL_CREDENTIAL_UNREADABLE" => "保存的 Gmail 凭据无法读取，请重新连接 Gmail。",
         "GMAIL_AUTH_TIMEOUT" => "Gmail 授权等待超时，请重新连接。",
-        "GMAIL_AUTH_DENIED" => "Gmail 授权被取消或拒绝，请确认测试用户及授权权限。",
+        "GMAIL_AUTH_DENIED" => "Google 拒绝了授权，请检查应用发布与验证状态，以及账号是否允许访问。",
         "GMAIL_REQUIRED_SCOPES_MISSING" => "Gmail 未授予所需权限，请重新连接并允许发送和读取邮件。",
         "GMAIL_REFRESH_TOKEN_REQUIRED" => "Google 未返回离线授权，请重新连接并确认授权。",
         "GMAIL_OAUTH_INVALID_CLIENT" => "Google 拒绝客户端配置，请重新导入正确的桌面应用 OAuth JSON。",

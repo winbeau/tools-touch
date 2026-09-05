@@ -113,3 +113,11 @@ dotnet publish tests/ToolsTouch.Desktop.Tests -c Release -r win-x64 --self-conta
 - 人工编辑后重新生成不覆盖旧草稿；连续点击不重复发；发送时断网保持明确失败或 Unknown；Unknown 核对不擅自重发。
 
 官方参考：[Google 桌面 OAuth](https://developers.google.com/identity/protocols/oauth2/native-app)、[Gmail 发送指南](https://developers.google.com/workspace/gmail/api/guides/sending)、[Gmail 权限](https://developers.google.com/workspace/gmail/api/auth/scopes)。
+
+## v0.2.2 登录与浏览器
+
+Gmail 首次授权后即完成应用登录与发件邮箱连接，无需在设置页重复连接；普通连接复用同一客户端的已保存账号。仅在凭据失效或需重新授权时点击“重新授权 Gmail”。
+
+取消勾选“自动打开默认浏览器”后，点击连接并复制生成的登录链接，在同一台电脑的任意浏览器打开。登录链接只在当前授权期间可用，不应发送给他人。浏览器显示成功可能仅表示回调已收到，以程序中凭据保存完成为准。
+
+模型组件支持现有 HTTP/HTTPS 代理与系统代理；不关闭 TLS 验证。本机授权回调不经过代理。Google 正式发布不代表通过品牌与 Gmail 权限验证。
