@@ -4,8 +4,8 @@
     <UseWPF>true</UseWPF><EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>ToolsTouch</AssemblyName>
     <Version>0.3.1</Version>
-    <!-- Preserve the explicit runtime dependency graph for Windows and cross-published packages. -->
-    <RestoreEnablePackagePruning>false</RestoreEnablePackagePruning>
+    <!-- This explicit DPAPI reference is also supplied by newer Windows desktop SDKs. -->
+    <NoWarn>$(NoWarn);NU1510</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../ToolsTouch.Application/ToolsTouch.Application.csproj" />

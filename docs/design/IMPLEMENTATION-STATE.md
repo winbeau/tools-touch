@@ -539,3 +539,5 @@
 - CI 33986807457：Linux／Windows 全量 Core（含备份与恢复句柄回归）、Node 与 Python 均通过；Windows publish 被 SDK 的重复框架引用提示 NU1510 阻断。保留用于跨平台发布的显式 DPAPI 10.0.9 固定版本，仅在该 PackageReference 上处理 NU1510；不放宽其他警告或更改运行库。
 
 - CI SDK 补记：PackageReference 局部 NoWarn 未阻止 SDK 产生 NU1510（33987061031）。最终移除该无效元数据，在 Desktop 项目显式设置 RestoreEnablePackagePruning=false，维持现有显式依赖图，不全局抑制警告。依据 https://learn.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files 的 pruning 开关定义。
+
+- SDK 最终设置修订：33987332923 关闭 pruning 后出现额外的 System.Memory 还原失败。恢复默认依赖裁剪，仅在 Desktop 项目 NoWarn 中列出已核实的重复框架引用提示 NU1510；其余警告仍视为错误，运行依赖与已验证产物保持原配置。前两项 SDK 设置为排错记录，非最终方案。
