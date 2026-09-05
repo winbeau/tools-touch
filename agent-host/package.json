@@ -9,7 +9,7 @@
   "scripts": {
     "check": "tsc --noEmit",
     "build": "tsc",
-    "test": "tsc && node --test dist/contracts.test.js",
+    "test": "tsc && node --test dist/*.test.js",
     "start": "node dist/index.js"
   },
   "dependencies": {

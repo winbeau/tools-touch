@@ -50,6 +50,7 @@ try
     Console.WriteLine("PASS: migration, draft idempotency/conflict/versioning, duplicate send, ambiguous failure, rejection, CV mutation, restart recovery");
     await ResearchTests.RunAsync(database, directory, args);
     await GmailTests.RunAsync(database);
+    await AccountTests.RunAsync(directory);
     await SearchTests.RunAsync();
 }
 finally

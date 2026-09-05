@@ -7,6 +7,7 @@ import { ModelRuntime, type AgentSession } from "@earendil-works/pi-coding-agent
 import { createTools, toolNames } from "./tools.js";
 import { outputSchemas, parseOutput } from "./outputs.js";
 import { createBusinessSession } from "./session.js";
+import { Authentication } from "./authentication.js";
 
 // Dedicated application Pi directory; never point this at the Gmail credential directory.
 const root = resolve(process.argv[2] ?? join(process.cwd(), ".tools-touch-pi"));
@@ -16,11 +17,11 @@ const runtime = await ModelRuntime.create({ authPath: join(root, "auth.json"), m
   modelsStorePath: join(root, "models-store.json"), refreshOnCreate: false });
 const string = Type.String({ minLength: 1, maxLength: 100000 });
 const commandSchema = Type.Union([
-  Type.Object({ type: Type.Literal("status"), id: string }, { additionalProperties: false }),
+  Type.Object({ type: Type.Literal("status"), id: string, provider: Type.Optional(string) }, { additionalProperties: false }),
   Type.Object({ type: Type.Literal("cancel"), id: string }, { additionalProperties: false }),
-  Type.Object({ type: Type.Literal("login"), id: string }, { additionalProperties: false }),
+  Type.Object({ type: Type.Literal("login"), id: string, provider: Type.Optional(string), auth_type: Type.Optional(Type.Union([Type.Literal("oauth"), Type.Literal("api_key")])), method: Type.Optional(string), secret: Type.Optional(string) }, { additionalProperties: false }),
   Type.Object({ type: Type.Literal("auth_reply"), id: string, prompt_id: string, value: string }, { additionalProperties: false }),
-  Type.Object({ type: Type.Literal("run"), id: string, run_id: string, prompt: string, model: string,
+  Type.Object({ type: Type.Literal("run"), id: string, run_id: string, prompt: string, model: string, provider: Type.Optional(string),
     output_kind: Type.Union([Type.Literal("research"), Type.Literal("analysis"), Type.Literal("draft")]),
     max_tool_calls: Type.Integer({ minimum: 1, maximum: 100 }), timeout_ms: Type.Integer({ minimum: 1000, maximum: 900000 }) }, { additionalProperties: false }),
   Type.Object({ type: Type.Literal("tool_result"), id: string, result: Type.Unknown() }, { additionalProperties: false }),
@@ -29,66 +30,42 @@ let session: AgentSession | undefined;
 let busy = false;
 let controller: AbortController | undefined;
 const pending = new Map<string, { resolve: (result: unknown) => void; reject: (error: Error) => void }>();
-const authPrompts = new Map<string, (value: string) => void>();
+const authentication = new Authentication(runtime, emit);
 
 async function handle(input: unknown) {
   if (!Value.Check(commandSchema, input)) { emit({ type: "error", code: "INVALID_COMMAND" }); return; }
   const command = input as Static<typeof commandSchema>;
   if (command.type === "auth_reply") {
-    const reply = authPrompts.get(command.prompt_id);
-    if (reply) reply(command.value);
+    const reply = authentication.reply(command.prompt_id, command.value);
     emit({ type: "response", id: command.id, ok: Boolean(reply), ...(!reply ? { code: "AUTH_PROMPT_EXPIRED" } : {}) });
     return;
   }
   if (command.type === "tool_result") { pending.get(command.id)?.resolve(command.result); return; }
   if (command.type === "cancel") {
     controller?.abort();
+    await authentication.cancel();
     await session?.abort();
     emit({ type: "response", id: command.id, ok: true });
     return;
   }
   if (command.type === "status") {
+    const provider = command.provider ?? "openai-codex";
     emit({ type: "response", id: command.id, ok: true, data: {
-      provider: "openai-codex", configured: runtime.hasConfiguredAuth("openai-codex"),
-      models: runtime.getModels("openai-codex").map(model => ({ id: model.id, name: model.name })), busy,
+      provider, configured: runtime.hasConfiguredAuth(provider),
+      models: runtime.getModels(provider).map(model => ({ id: model.id, name: model.name })), busy: busy || authentication.busy,
+      providers: runtime.getProviders().filter(item => item.auth.oauth || item.auth.apiKey?.login).map(item => ({
+        id: item.id, name: item.name, configured: runtime.hasConfiguredAuth(item.id),
+        oauth: Boolean(item.auth.oauth), api_key: Boolean(item.auth.apiKey?.login),
+        models: runtime.getModels(item.id).map(model => ({ id: model.id, name: model.name })),
+      })),
     } });
     return;
   }
   if (busy) { emit({ type: "response", id: command.id, ok: false, code: "RUN_BUSY" }); return; }
-  if (command.type === "login") {
-    busy = true;
-    controller = new AbortController();
-    const loginController = controller;
-    const deadline = setTimeout(() => loginController.abort(), 300000);
-    emit({ type: "response", id: command.id, ok: true });
-    try {
-      await runtime.login("openai-codex", "oauth", {
-        signal: loginController.signal,
-        notify: event => {
-          if (event.type === "auth_url") emit({ type: "auth_url", url: event.url });
-          else if (event.type === "progress" || event.type === "info") emit({ type: "auth_progress", message: event.message });
-        },
-        prompt: async prompt => {
-          if (prompt.type === "secret") throw new Error("SECRET_PROMPT_UNSUPPORTED");
-          const signal = prompt.signal ? AbortSignal.any([prompt.signal, loginController.signal]) : loginController.signal;
-          const id = crypto.randomUUID();
-          return await new Promise<string>((resolveValue, reject) => {
-            const cleanup = () => { authPrompts.delete(id); signal.removeEventListener("abort", abort); };
-            const abort = () => { cleanup(); emit({ type: "auth_prompt_closed", prompt_id: id }); reject(new Error("AUTH_CANCELLED")); };
-            authPrompts.set(id, value => { cleanup(); resolveValue(value); });
-            signal.addEventListener("abort", abort, { once: true });
-            if (signal.aborted) { abort(); return; }
-            emit({ type: "auth_prompt", prompt_id: id, kind: prompt.type, message: prompt.message,
-              ...(prompt.type === "select" ? { options: prompt.options } : {}) });
-          });
-        },
-      });
-      emit({ type: "auth_finished", ok: true });
-    } catch { emit({ type: "auth_finished", ok: false, code: loginController.signal.aborted ? "AUTH_CANCELLED" : "AUTH_FAILED" }); }
-    finally { clearTimeout(deadline); authPrompts.clear(); controller = undefined; busy = false; }
-    return;
-  }
-  const model = runtime.getModel("openai-codex", command.model);
+  if (command.type === "login") { authentication.start(command); return; }
+  if (authentication.busy) { emit({ type: "response", id: command.id, ok: false, code: "AUTH_IN_PROGRESS" }); return; }
+  const provider = command.provider ?? "openai-codex";
+  const model = runtime.getModel(provider, command.model);
   if (!model) { emit({ type: "response", id: command.id, ok: false, code: "MODEL_NOT_FOUND" }); return; }
   busy = true;
   controller = new AbortController();
@@ -120,7 +97,7 @@ async function handle(input: unknown) {
         emit({ type: "tool_request", id: key, run_id: command.run_id, tool: name, arguments: args });
       });
     });
-    const created = await createBusinessSession(root, runtime, command.model, customTools);
+    const created = await createBusinessSession(root, runtime, command.model, customTools, provider);
     session = created.session;
     const active = session;
     const onAbort = () => { void active.abort().catch(() => {}); };
@@ -175,5 +152,5 @@ process.stdin.on("data", (chunk: Buffer) => {
     catch { emit({ type: "error", code: "INVALID_JSON" }); }
   }
 });
-process.stdin.on("end", () => { controller?.abort(); });
+process.stdin.on("end", () => { controller?.abort(); void authentication.cancel(); });
 emit({ type: "ready", protocol_version: 1, tools: toolNames });

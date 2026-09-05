@@ -53,7 +53,7 @@ def main():
                    "--host", str(workspace / "agent-host/dist/index.js"), "--node", str(workspace / "node/node.exe")]
         process = subprocess.Popen(command, cwd=workspace)
         try:
-            result = process.wait(timeout=150)
+            result = process.wait(timeout=260)
         except subprocess.TimeoutExpired:
             subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], check=False,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

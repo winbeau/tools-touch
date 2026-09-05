@@ -26,12 +26,14 @@ public sealed class AgentBridge : IAgentBridge, IAsyncDisposable
     private readonly Task pump;
     private readonly Task errors;
     private CancellationTokenSource toolCancellation = new();
+    private readonly DiagnosticLog? diagnostics;
     public event Action<JsonElement>? EventReceived;
     public void SetToolContext(string invocation, ToolContext context) => contexts[invocation] = context;
     public void RemoveToolContext(string invocation) => contexts.TryRemove(invocation, out _);
 
-    public AgentBridge(string nodePath, string hostPath, string piDirectory, ToolDispatcher dispatcher)
+    public AgentBridge(string nodePath, string hostPath, string piDirectory, ToolDispatcher dispatcher, DiagnosticLog? diagnostics = null)
     {
+        this.diagnostics = diagnostics;
         this.dispatcher = dispatcher;
         var start = new ProcessStartInfo(nodePath)
         {
@@ -47,13 +49,14 @@ public sealed class AgentBridge : IAgentBridge, IAsyncDisposable
         start.Environment.Clear();
         foreach (var pair in environment) start.Environment[pair.Key] = pair.Value;
         process = Process.Start(start) ?? throw new InvalidOperationException("AGENT_START_FAILED");
+        diagnostics?.Write("component", "process_started");
         pump = PumpAsync();
         // Drain stderr to prevent pipe deadlock, without exposing raw provider diagnostics or secrets to UI/model.
         errors = DrainErrorsAsync();
     }
 
     public async Task WaitReadyAsync(CancellationToken cancellationToken = default) =>
-        await ready.Task.WaitAsync(TimeSpan.FromSeconds(30), cancellationToken);
+        await ready.Task.WaitAsync(TimeSpan.FromSeconds(90), cancellationToken);
 
     public async Task<JsonElement> RequestAsync(object command, CancellationToken cancellationToken = default)
     {
@@ -96,6 +99,7 @@ public sealed class AgentBridge : IAgentBridge, IAsyncDisposable
                     var allowed = message.GetProperty("tools").EnumerateArray().Select(value => value.GetString()).Order().ToArray();
                     if (!allowed.SequenceEqual(ToolDispatcher.AllowedTools.Order())) throw new InvalidOperationException("AGENT_TOOL_MISMATCH");
                     ready.TrySetResult();
+                    diagnostics?.Write("component", "ready");
                 }
                 else if (type == "response" && message.TryGetProperty("id", out var requestId))
                     pending.GetValueOrDefault(requestId.GetString()!)?.TrySetResult(message);
@@ -112,8 +116,9 @@ public sealed class AgentBridge : IAgentBridge, IAsyncDisposable
                 }
             }
         }
-        catch (Exception) when (!lifetime.IsCancellationRequested)
+        catch (Exception error) when (!lifetime.IsCancellationRequested)
         {
+            diagnostics?.Write("component", "protocol_failed", "AGENT_PROTOCOL_FAILED", error);
             EventReceived?.Invoke(JsonSerializer.SerializeToElement(new { type = "host_disconnected", code = "AGENT_PROTOCOL_FAILED" }));
         }
         finally
@@ -155,7 +160,15 @@ public sealed class AgentBridge : IAgentBridge, IAsyncDisposable
 
     private async Task DrainErrorsAsync()
     {
-        try { while (await process.StandardError.ReadLineAsync(lifetime.Token).ConfigureAwait(false) != null) { } }
+        try
+        {
+            var reported = false;
+            while (await process.StandardError.ReadLineAsync(lifetime.Token).ConfigureAwait(false) != null)
+            {
+                if (!reported) diagnostics?.Write("component", "stderr_received", "COMPONENT_DIAGNOSTIC_AVAILABLE");
+                reported = true;
+            }
+        }
         catch (OperationCanceledException) { }
     }
 

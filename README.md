@@ -6,7 +6,13 @@ Windows 安装版：[前往 GitHub Releases](https://github.com/winbeau/tools-to
 
 已提供六页 WPF、研究服务、Pi 登录适配和 Gmail 流程实现，并补充原生 Windows 桌面回归检查；真实账号端到端验收仍未完成。完整范围与未完成项见 [实施记录](docs/IMPLEMENTATION.md)。
 
-Windows 使用、配置与打包步骤见 [WINDOWS.md](docs/WINDOWS.md)。更新后的便携包目标为 `artifacts/ToolsTouch-win-x64-r3.zip`，内含 .NET、Node 和 Pi 依赖；原生自动检查不等于真实账号完整验收。逐项证据与缺口见 [ACCEPTANCE.md](docs/ACCEPTANCE.md)。
+Windows 使用、配置与打包步骤见 [WINDOWS.md](docs/WINDOWS.md)。更新后的便携包目标为 `artifacts/ToolsTouch-win-x64-v0.2.0-login.zip`，内含 .NET、Node 和 Pi 依赖；原生自动检查不等于真实账号完整验收。逐项证据与缺口见 [ACCEPTANCE.md](docs/ACCEPTANCE.md)。
+
+## v0.2.0 账户与启动更新
+
+首次打开使用 Gmail 登录，登录邮箱同时作为投递邮箱，成功后进入工作台并加密保存登录状态。打开程序自动加载组件并显示进度；Settings 可选择服务商、浏览器授权、设备码或 API Key。修复 OpenAI 授权选项未提交导致后续登录一直忙碌的问题，增加取消和重试。Gmail 支持导入并校验桌面客户端 JSON、授权阶段显示和具体失败原因。安装包尚未提供有效 Google 客户端配置，需要在首次登录页导入后才能进入工作台；真实 Google/OpenAI 账户端到端验证仍需完成。
+
+新增应用诊断日志及导出入口，保留 14 天，不记录密钥、授权码或正文。详细配置与发布者预置 Google 客户端的方法见 Windows 文档。
 
 ## 已有核心验证
 
@@ -23,10 +29,10 @@ dotnet run --project tests/ToolsTouch.Core.Tests
 Windows 原生检查（额外需要 Python 3）会保存页面截图和 JSON 结果；所有测试使用隔离资料，不登录或发送真实邮件：
 
 ```powershell
-python scripts/test-windows.py --package artifacts/ToolsTouch-win-x64-r3 --output artifacts/windows-check
+python scripts/test-windows.py --package artifacts/ToolsTouch-win-x64-v0.2.0-login --output artifacts/windows-check
 ```
 
-本次检查 7 组全部通过，包括六页及三个详情子页渲染、草稿编辑与空选择清理、DPAPI 跨进程读取、随包 Pi 状态握手及退出死锁回归。WSL 交叉构建后的运行方法见 [Windows 原生检查](docs/WINDOWS.md#可重复的-windows-原生检查)。
+v0.2.0 原生检查 12 组全部通过，包括六页及三个详情子页渲染、草稿编辑与空选择清理、DPAPI 跨进程读取、首次 Gmail 登录门槛与模拟回调、模型密钥配置、随包组件状态握手及退出死锁回归。WSL 交叉构建后的运行方法见 [Windows 原生检查](docs/WINDOWS.md#可重复的-windows-原生检查)。
 
 核心回归包含实际 C# ↔ Node/Pi 子进程握手，因此需要先构建 AgentHost。可选的真实来源连通性检查：
 
@@ -48,6 +54,6 @@ node dist/index.js /path/to/dedicated-pi-storage
 
 `pi/` 保留为上游参考源码，应用不修改其中的认证或 Agent Loop。
 
-AgentHost 使用 JSONL stdin/stdout；支持 `status`、`login`、`auth_reply`、`run`、`cancel`、`tool_result`。C# 的 AgentBridge 分发工具请求，DiscoveryService 保存阶段检查点和结构化分析。Pi 存储目录只能用于 Pi 认证和会话，不要放 Gmail 凭据。WPF 提供两个登录入口；OpenAI 交换与存储凭据仍由 Pi 执行，Gmail 凭据由当前 Windows 用户 DPAPI 保护。
+AgentHost 使用 JSONL stdin/stdout；支持 `status`、`login`、`auth_reply`、`run`、`cancel`、`tool_result`。C# 的 AgentBridge 分发工具请求，DiscoveryService 保存阶段检查点和结构化分析。Pi 存储目录只能用于 Pi 认证和会话，不要放 Gmail 凭据。WPF 从运行组件读取服务商列表，支持 OpenAI、DeepSeek、Claude、GLM 等的授权和模型配置；模型凭据仍由 Pi 执行交换与存储，Gmail 凭据由当前 Windows 用户 DPAPI 保护。
 
 网页检索适配器使用 Brave Search API，未配置凭据返回 `WEB_SEARCH_NOT_CONFIGURED`；不会静默生成模拟结果。学术检索使用无需用户登录的 arXiv（单并发、至少间隔 3 秒）与 Crossref（单并发、至少间隔 1 秒）。Brave 真实配额与检索质量验收仍待完成。

@@ -33,6 +33,9 @@ static class GmailTests
             browser = Task.Run(async () =>
             {
                 using var callback = new HttpClient();
+                using var preconnect = new System.Net.Sockets.TcpClient();
+                var redirect = new Uri(query["redirect_uri"]);
+                await preconnect.ConnectAsync(redirect.Host, redirect.Port);
                 using var invalid = await callback.GetAsync(query["redirect_uri"] + "?code=ignored&state=wrong");
                 Check(invalid.StatusCode == HttpStatusCode.BadRequest, "callback rejects wrong state");
                 using var valid = await callback.GetAsync(query["redirect_uri"] + "?code=test-code&state=" + Uri.EscapeDataString(query["state"]));

@@ -10,7 +10,7 @@ using ToolsTouch.Core;
 
 namespace ToolsTouch.Desktop;
 
-public sealed class MainViewModel : Observable, IAsyncDisposable
+public sealed partial class MainViewModel : Observable, IAsyncDisposable
 {
     private readonly LocalDatabase database;
     private readonly ResearchStore store;
@@ -25,8 +25,6 @@ public sealed class MainViewModel : Observable, IAsyncDisposable
     private AgentBridge? bridge;
     private DiscoveryService? discovery;
     private CancellationTokenSource? taskCancellation;
-    private string? authPromptId;
-    private string? authUrl;
     private string? profileId;
     private bool refreshing;
     private bool disposed;
@@ -40,19 +38,14 @@ public sealed class MainViewModel : Observable, IAsyncDisposable
     public ObservableCollection<AgentRun> Runs { get; } = [];
     public ObservableCollection<string> Models { get; } = [];
     public ObservableCollection<string> Activity { get; } = [];
-    private string status = "就绪。请在 Settings 配置 AgentHost 并连接 OpenAI。";
+    private string status = "组件加载中…";
     public string Status { get => status; private set => Set(ref status, value); }
-    private string openAiStatus = "尚未读取 Pi 状态";
-    public string OpenAiStatus { get => openAiStatus; private set => Set(ref openAiStatus, value); }
-    private string authPrompt = "";
-    public string AuthPrompt { get => authPrompt; private set => Set(ref authPrompt, value); }
-    public string AuthReply { get; set; } = "";
     public string Query { get; set; } = "帮我找做 World Model 的老师";
     public string ProfessorFilter { get; set; } = "";
     private int selectedPage;
     public int SelectedPage { get => selectedPage; set => Set(ref selectedPage, value); }
     private bool busy;
-    public bool Busy { get => busy; private set { Set(ref busy, value); CommandManager.InvalidateRequerySuggested(); } }
+    public bool Busy { get => busy; private set { Set(ref busy, value); Raise(nameof(AccountControlsEnabled)); CommandManager.InvalidateRequerySuggested(); } }
     private Professor? selectedProfessor;
     public Professor? SelectedProfessor
     {
@@ -102,10 +95,10 @@ public sealed class MainViewModel : Observable, IAsyncDisposable
     public string Skills { get; set; } = "";
     public string Summary => $"导师 {Professors.Count} · 待编辑 {Drafts.Count(d => d.State == "Draft")} · 已发送 {Drafts.Count(d => d.State == "Sent")} · 已回复 {outreach.ReplyCount()} · 待恢复 {Runs.Count(r => r.State is "Partial" or "Failed" or "Cancelled")}";
     public ICommand RefreshCommand { get; }
-    public ICommand ConnectAgentCommand { get; }
-    public ICommand LoginCommand { get; }
-    public ICommand OpenLoginCommand { get; }
-    public ICommand AuthReplyCommand { get; }
+    public ICommand ConnectAgentCommand { get; private set; } = null!;
+    public ICommand LoginCommand { get; private set; } = null!;
+    public ICommand OpenLoginCommand { get; private set; } = null!;
+    public ICommand AuthReplyCommand { get; private set; } = null!;
     public ICommand DiscoverCommand { get; }
     public ICommand AnalyzeCommand { get; }
     public ICommand GenerateDraftCommand { get; }
@@ -122,31 +115,31 @@ public sealed class MainViewModel : Observable, IAsyncDisposable
     public ICommand AttachCvCommand { get; }
     public ICommand RemoveAttachmentCommand { get; }
     public ICommand SaveSettingsCommand { get; }
-    public ICommand ConnectGmailCommand { get; }
+    public ICommand ConnectGmailCommand { get; private set; } = null!;
     public ICommand SendCommand { get; }
     public ICommand ReconcileCommand { get; }
     public ICommand SyncRepliesCommand { get; }
 
-    public MainViewModel(string? dataDirectory = null)
+    public MainViewModel(string? dataDirectory = null, HttpClient? accountHttp = null, Action<Uri>? openAccountBrowser = null)
     {
+        if (accountHttp != null) http = accountHttp;
+        if (openAccountBrowser != null) gmailBrowser = openAccountBrowser;
         Settings = DesktopSettings.Load(dataDirectory);
         Directory.CreateDirectory(DataDirectory);
+        diagnostics = new DiagnosticLog(DataDirectory);
         database = new(Path.Combine(DataDirectory, "tools-touch.db")); database.Initialize();
         store = new(database); library = new(database, DataDirectory, web); outreach = new(database);
         gmailAuth = new GmailAuth(http, new WindowsSecretStore(DataDirectory), () => GoogleClient.FromFile(Settings.GoogleClientFile));
         gmail = new GmailService(http, gmailAuth);
+        ConfigureAccounts();
         store.RecoverInterruptedRuns(); outreach.RecoverInterruptedSends();
-        UiCommand Command(Func<Task> action, Func<bool>? enabled = null) => new(action, ReportError, enabled);
+        UiCommand Command(Func<Task> action, Func<bool>? enabled = null) => new(action, ReportError, () => IsSignedIn && (enabled?.Invoke() ?? true));
         RefreshCommand = Command(() => { Refresh(); return Task.CompletedTask; });
-        ConnectAgentCommand = Command(ConnectAgentAsync, () => !Busy);
-        LoginCommand = Command(async () => { await EnsureAgentAsync(); await bridge!.RequestAsync(new { type = "login", id = NewId() }); }, () => !Busy);
-        OpenLoginCommand = Command(() => { if (authUrl != null) OpenUrl(authUrl); return Task.CompletedTask; }, () => authUrl != null);
-        AuthReplyCommand = Command(async () => { await bridge!.RequestAsync(new { type = "auth_reply", id = NewId(), prompt_id = authPromptId, value = AuthReply }); AuthReply = ""; Raise(nameof(AuthReply)); }, () => authPromptId != null);
-        DiscoverCommand = Command(() => StartTaskAsync("Discover"), () => !Busy && !string.IsNullOrWhiteSpace(Query));
-        AnalyzeCommand = Command(() => StartTaskAsync("Analyze"), () => !Busy && SelectedProfessor != null);
-        GenerateDraftCommand = Command(() => StartTaskAsync("Draft"), () => !Busy && SelectedProfessor != null);
-        ResumeCommand = Command(async () => { await EnsureAgentAsync(); await ExecuteTaskAsync(SelectedRun!.Id); }, () => !Busy && SelectedRun?.State is "Queued" or "Partial" or "Failed" or "Cancelled");
-        CancelCommand = Command(async () => { taskCancellation?.Cancel(); gmailCancellation?.Cancel(); if (bridge != null) await bridge.CancelAsync(); });
+        DiscoverCommand = Command(() => StartTaskAsync("Discover"), () => CanUseModel && !string.IsNullOrWhiteSpace(Query));
+        AnalyzeCommand = Command(() => StartTaskAsync("Analyze"), () => CanUseModel && SelectedProfessor != null);
+        GenerateDraftCommand = Command(() => StartTaskAsync("Draft"), () => CanUseModel && SelectedProfessor != null);
+        ResumeCommand = Command(async () => { await EnsureAgentAsync(); await ExecuteTaskAsync(SelectedRun!.Id); }, () => CanUseModel && SelectedRun?.State is "Queued" or "Partial" or "Failed" or "Cancelled");
+        CancelCommand = Command(CancelCurrentAsync, () => Busy || AuthBusy || mailBusy);
         ViewProfessorCommand = Command(() => { LoadProfessor(); SelectedPage = 3; return Task.CompletedTask; }, () => SelectedProfessor != null);
         OpenHomepageCommand = Command(() => { OpenUrl(SelectedProfessor!.Homepage); return Task.CompletedTask; }, () => SelectedProfessor != null);
         ReadPaperCommand = Command(async () =>
@@ -174,13 +167,7 @@ public sealed class MainViewModel : Observable, IAsyncDisposable
             Raise(nameof(Attachment)); return Task.CompletedTask;
         }, CanEditDraft);
         RemoveAttachmentCommand = Command(() => { Attachment = ""; Raise(nameof(Attachment)); return Task.CompletedTask; }, CanEditDraft);
-        SaveSettingsCommand = Command(() => { Settings.Save(); Status = "设置已保存。Agent 路径更改后请重新连接。"; return Task.CompletedTask; }, () => !Busy);
-        ConnectGmailCommand = Command(async () =>
-        {
-            mailBusy = true; gmailCancellation = new(); CommandManager.InvalidateRequerySuggested();
-            try { Settings.Save(); await gmailAuth.ConnectAsync(uri => OpenUrl(uri.AbsoluteUri), gmailCancellation.Token); Raise(nameof(GmailStatus)); Status = "Gmail 已连接。"; }
-            finally { mailBusy = false; gmailCancellation.Dispose(); gmailCancellation = null; CommandManager.InvalidateRequerySuggested(); }
-        }, () => !Busy && !mailBusy);
+        SaveSettingsCommand = Command(() => { Settings.Save(); Status = "设置已保存。"; return Task.CompletedTask; }, () => !Busy);
         SendCommand = Command(SendAsync, () => CanEditDraft() && gmail.Account != null && !mailBusy);
         ReconcileCommand = Command(async () =>
         {
@@ -206,68 +193,16 @@ public sealed class MainViewModel : Observable, IAsyncDisposable
 
     private bool CanEditDraft() => SelectedDraft?.State is "Draft" or "Failed";
     private static string NewId() => Guid.NewGuid().ToString("N");
-    private void ReportError(Exception error) => Status = error is OperationCanceledException ? "任务已取消，已保存结果保留。" : "操作失败：" + error.Message;
     private static void OpenUrl(string url)
     {
         var uri = PublicWeb.ValidateUri(url);
         Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
     }
 
-    private async Task EnsureAgentAsync() { if (bridge == null) await ConnectAgentAsync(); }
-    private async Task ConnectAgentAsync()
-    {
-        Settings.Save();
-        if (bridge != null) { bridge.EventReceived -= OnAgentEvent; await bridge.DisposeAsync(); bridge = null; }
-        var dispatcher = new ToolDispatcher(store, library, outreach,
-            new BraveWebSearch(http, () => File.Exists(Settings.SearchKeyFile) ? File.ReadAllText(Settings.SearchKeyFile).Trim() : null),
-            new ScholarlySearch(new ArxivSearch(http), new CrossrefSearch(http)), web);
-        bridge = new AgentBridge(Settings.NodePath, Settings.AgentHostPath, Path.Combine(DataDirectory, "pi"), dispatcher);
-        bridge.EventReceived += OnAgentEvent;
-        discovery = new DiscoveryService(database, store, library, bridge);
-        discovery.Changed += () => OnUi(Refresh);
-        await RefreshAgentStatusAsync();
-        Status = "Pi 已启动。";
-    }
-    private async Task RefreshAgentStatusAsync()
-    {
-        var response = await bridge!.RequestAsync(new { type = "status", id = NewId() });
-        var data = response.GetProperty("data");
-        OpenAiStatus = data.GetProperty("configured").GetBoolean() ? "Pi 已保存 OpenAI 登录凭据（调用可用性待请求验证）" : "OpenAI 未连接";
-        Models.Clear();
-        foreach (var item in data.GetProperty("models").EnumerateArray()) Models.Add(item.GetProperty("id").GetString()!);
-        if (!Models.Contains(Settings.Model)) Settings.Model = Models.FirstOrDefault() ?? "";
-        Raise(nameof(Settings));
-    }
     private void OnUi(Action action)
     {
         if (!disposed && !Application.Current.Dispatcher.HasShutdownStarted) Application.Current.Dispatcher.BeginInvoke(action);
     }
-    private void OnAgentEvent(JsonElement message) => OnUi(() =>
-    {
-        var type = message.GetProperty("type").GetString();
-        switch (type)
-        {
-            case "auth_url": authUrl = message.GetProperty("url").GetString(); Status = "点击“打开登录浏览器”继续 OpenAI 授权。"; break;
-            case "auth_progress": Status = message.GetProperty("message").GetString()!; break;
-            case "auth_prompt":
-                authPromptId = message.GetProperty("prompt_id").GetString(); AuthPrompt = message.GetProperty("message").GetString()!;
-                if (message.TryGetProperty("options", out var options)) AuthPrompt += "\n" + string.Join("\n", options.EnumerateArray().Select(option => option.GetProperty("id").GetString() + ": " + option.GetProperty("label").GetString()));
-                break;
-            case "auth_prompt_closed": authPromptId = null; AuthPrompt = ""; break;
-            case "auth_finished":
-                authPromptId = null; authUrl = null; AuthPrompt = "";
-                Status = message.GetProperty("ok").GetBoolean() ? "OpenAI 登录完成。点击读取状态刷新模型。" : "OpenAI 登录未完成，可重新连接。";
-                break;
-            case "host_disconnected": OpenAiStatus = "Pi 进程已断开，请重新连接。"; break;
-            default:
-                Activity.Insert(0, DateTime.Now.ToString("HH:mm:ss") + " " + type +
-                    (message.TryGetProperty("data", out var data) && data.TryGetProperty("tool", out var tool) ? " · " + tool.GetString() : ""));
-                while (Activity.Count > 200) Activity.RemoveAt(Activity.Count - 1);
-                break;
-        }
-        CommandManager.InvalidateRequerySuggested();
-    });
-
     private async Task StartTaskAsync(string kind)
     {
         await EnsureAgentAsync();
@@ -279,7 +214,7 @@ public sealed class MainViewModel : Observable, IAsyncDisposable
     {
         Busy = true;
         taskCancellation = new();
-        try { await discovery!.ExecuteAsync(runId, Settings.Model, taskCancellation.Token); Status = "任务已完成。"; }
+        try { await discovery!.ExecuteAsync(runId, Settings.Model, taskCancellation.Token, Settings.Provider); Status = "任务已完成。"; }
         finally { Busy = false; taskCancellation.Dispose(); taskCancellation = null; Refresh(); if (SelectedProfessor != null) LoadProfessor(); }
     }
     private void Refresh()
@@ -379,7 +314,7 @@ public sealed class MainViewModel : Observable, IAsyncDisposable
     }
     public async ValueTask DisposeAsync()
     {
-        disposed = true; taskCancellation?.Cancel(); gmailCancellation?.Cancel();
+        disposed = true; componentCancellation.Cancel(); taskCancellation?.Cancel(); gmailCancellation?.Cancel();
         if (bridge != null) await bridge.DisposeAsync().ConfigureAwait(false);
         web.Dispose(); http.Dispose();
     }

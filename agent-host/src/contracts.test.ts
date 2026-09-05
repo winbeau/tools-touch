@@ -82,7 +82,7 @@ test("actual host process starts with isolated Pi storage and returns only publi
     const status = messages.find(message => message.id === "status-1");
     assert.equal(status.data.configured, false);
     assert.ok(status.data.models.length > 0);
-    assert.deepEqual(Object.keys(status.data).sort(), ["busy", "configured", "models", "provider"]);
+    assert.deepEqual(Object.keys(status.data).sort(), ["busy", "configured", "models", "provider", "providers"]);
     assert.ok(messages.some(message => message.code === "INVALID_COMMAND"));
   } finally { await rm(directory, { recursive: true, force: true }); }
 });

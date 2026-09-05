@@ -17,7 +17,7 @@ public sealed class DiscoveryService(LocalDatabase database, ResearchStore store
             ResearchStore.Serialize(new { maxToolCalls, timeoutMs }));
     }
 
-    public async Task ExecuteAsync(string runId, string model, CancellationToken cancellationToken = default)
+    public async Task ExecuteAsync(string runId, string model, CancellationToken cancellationToken = default, string provider = "openai-codex")
     {
         if (!await gate.WaitAsync(0, cancellationToken)) throw new InvalidOperationException("RUN_BUSY");
         var mayOwnActiveRun = false;
@@ -58,12 +58,12 @@ public sealed class DiscoveryService(LocalDatabase database, ResearchStore store
                     mayOwnActiveRun = true;
                     try { await bridge.RequestAsync(new
                     {
-                        type = "run", id = Guid.NewGuid().ToString("N"), run_id = invocation, model,
+                        type = "run", id = Guid.NewGuid().ToString("N"), run_id = invocation, model, provider,
                         prompt = BuildPrompt(run.Kind, stage, input, completed),
                         output_kind = stage == "Analyze" ? "analysis" : stage == "Draft" ? "draft" : "research",
                         max_tool_calls = budget.GetProperty("maxToolCalls").GetInt32(), timeout_ms = budget.GetProperty("timeoutMs").GetInt32()
                     }, cancellationToken); }
-                    catch (InvalidOperationException error) when (error.Message is "RUN_BUSY" or "MODEL_NOT_FOUND" or "SESSION_START_FAILED")
+                    catch (InvalidOperationException error) when (error.Message is "RUN_BUSY" or "AUTH_IN_PROGRESS" or "MODEL_NOT_FOUND" or "SESSION_START_FAILED")
                     { mayOwnActiveRun = false; throw; }
                     using var registration = cancellationToken.Register(() => { _ = CancelQuietlyAsync(); });
                     var terminal = await result.Task.WaitAsync(TimeSpan.FromMilliseconds(budget.GetProperty("timeoutMs").GetInt32() + 15000), cancellationToken);

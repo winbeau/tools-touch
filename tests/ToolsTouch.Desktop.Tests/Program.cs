@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -83,13 +85,78 @@ internal static class Program
             var draft = outreach.CreateDraft(professor.Id, "test@example.org", "研究交流 · 测试草稿", "这是一封用于界面验证的本地草稿。", null, "test-draft");
             var sent = outreach.CreateDraft(professor.Id, "test@example.org", "已发送状态 · 替身记录", "测试替身，没有发送邮件。", null, "test-sent");
             outreach.SendAsync(sent.Id, new TestTransport()).GetAwaiter().GetResult();
-            model = new MainViewModel(directory);
+            Task? googleCallback = null;
+            model = new MainViewModel(directory, new HttpClient(new GoogleHandler()), uri =>
+            {
+                var query = uri.Query[1..].Split('&').Select(pair => pair.Split('=', 2)).ToDictionary(pair => pair[0], pair => Uri.UnescapeDataString(pair[1]));
+                googleCallback = Task.Run(async () =>
+                {
+                    using var callback = new HttpClient();
+                    using var response = await callback.GetAsync(query["redirect_uri"] + "?code=synthetic-code&state=" + query["state"]);
+                    Check(response.IsSuccessStatusCode, "Google callback failed");
+                });
+            });
             window = new MainWindow { DataContext = model, ShowActivated = false, ShowInTaskbar = false, Left = -20000, Top = -20000 };
             using var bindings = new BindingErrors();
             PresentationTraceSources.DataBindingSource.Listeners.Add(bindings);
             PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Error;
             window.Show(); Pump();
-            var tabs = Descendants<TabControl>(window).First();
+            var tabs = (TabControl)window.FindName("WorkspaceTabs");
+            Test("first launch requires Gmail; failed login cannot unlock workspace", () =>
+            {
+                Check(model.NeedsSignIn && !model.IsSignedIn && !model.DiscoverCommand.CanExecute(null), "first launch bypassed login");
+                Check(((FrameworkElement)window.FindName("WorkspacePanel")).Visibility == Visibility.Collapsed, "workspace visible before login");
+                Snapshot(window, Path.Combine(output, "first-launch-login.png"));
+                model.Settings.GoogleClientFile = "";
+                model.ConnectGmailCommand.Execute(null); Pump();
+                Check(!model.IsSignedIn && model.GmailProgress.Contains("Google"), "missing config unlocked workspace");
+            });
+            Test("Gmail login unlocks app, identifies sender and survives reopening", () =>
+            {
+                var config = Path.Combine(directory, "google-client.json");
+                File.WriteAllText(config, "{\"installed\":{\"client_id\":\"synthetic.apps.googleusercontent.com\",\"client_secret\":\"synthetic\"}}");
+                model.Settings.GoogleClientFile = config;
+                model.ConnectGmailCommand.Execute(null);
+                WaitFor(() => model.IsSignedIn, 15); Pump();
+                googleCallback!.GetAwaiter().GetResult();
+                Check(model.SignedInAccount == "sender@example.org" && model.GmailStatus.Contains("sender@example.org"), "app account differs from sender");
+                Check(((FrameworkElement)window.FindName("WorkspacePanel")).Visibility == Visibility.Visible, "login did not reveal workspace");
+                var restored = new GmailAuth(new HttpClient(), new WindowsSecretStore(directory), () => GoogleClient.FromFile(config));
+                Check(restored.Account == model.SignedInAccount, "login did not persist in protected storage");
+            });
+            Test("window automatically loads components and provider catalogue", () =>
+            {
+                var startup = model.InitializeAsync();
+                Check(ReferenceEquals(startup, model.InitializeAsync()), "startup must be idempotent");
+                WaitFor(() => startup.IsCompleted, 100);
+                Check(model.ComponentReady && !model.ComponentLoading, "automatic startup failed: " + model.Status);
+                foreach (var provider in new[] { "openai-codex", "openai", "deepseek", "anthropic", "zai", "zai-coding-cn" })
+                    Check(model.Providers.Any(item => item.Id == provider), "missing provider: " + provider);
+            });
+            Test("native API key configuration, duplicate prevention and log redaction", () =>
+            {
+                tabs.SelectedIndex = 5; Pump();
+                model.SelectedProvider = model.Providers.Single(item => item.Id == "deepseek"); Pump();
+                Check(model.ApiKeyRequired && !model.LoginCommand.CanExecute(null), "empty API key accepted");
+                var key = (PasswordBox)window.FindName("ProviderKeyBox");
+                key.Password = "synthetic-native-test-key"; Pump();
+                Check(model.LoginCommand.CanExecute(null), "native password entry did not enable login");
+                model.LoginCommand.Execute(null);
+                Check(model.AuthBusy && !model.LoginCommand.CanExecute(null) && !model.AccountControlsEnabled, "duplicate login not disabled");
+                WaitFor(() => !model.AuthBusy, 15);
+                Check(model.SelectedProvider?.Configured == true, "provider credential not saved: " + model.Status);
+                Check(key.Password.Length == 0 && model.ProviderApiKey.Length == 0, "API key remained visible in input");
+                Check(!File.ReadAllText(Path.Combine(directory, "settings.json")).Contains("synthetic-native-test-key"), "API key leaked into settings");
+                Check(!string.Join("", Directory.GetFiles(Path.Combine(directory, "logs")).Select(File.ReadAllText)).Contains("synthetic-native-test-key"), "API key leaked into logs");
+                Snapshot(window, Path.Combine(output, "accounts-api-key.png"));
+            });
+            Test("missing Gmail configuration is explained and can be retried", () =>
+            {
+                model.Settings.GoogleClientFile = "";
+                model.ConnectGmailCommand.Execute(null); Pump();
+                Check(model.GmailProgress.Contains("Google") && !model.GmailProgress.Contains("RUN_BUSY"), "missing configuration not explained");
+                Check(model.ConnectGmailCommand.CanExecute(null), "failed Gmail login blocks retry");
+            });
 
             Test("six pages and detail tabs render without binding errors", () =>
             {
@@ -146,14 +213,16 @@ internal static class Program
                 Check(!model.AnalyzeCommand.CanExecute(null), "analysis enabled without professor");
             });
 
-            Test("native Windows Pi handshake and UI-thread shutdown", () =>
+            Test("component retry and UI-thread shutdown", () =>
             {
+                var originalHost = model.Settings.AgentHostPath;
+                model.Settings.AgentHostPath = Path.Combine(directory, "missing.js");
                 model.ConnectAgentCommand.Execute(null);
-                var timer = Stopwatch.StartNew();
-                while (!model.ConnectAgentCommand.CanExecute(null) && timer.Elapsed < TimeSpan.FromSeconds(40))
-                { Pump(); Thread.Sleep(15); }
-                Check(model.Status == "Pi 已启动。" && model.Models.Count > 0, "Pi handshake failed: " + model.Status);
-                // Matches App.OnExit: the UI thread waits while disposal runs on a worker.
+                WaitFor(() => model.ConnectAgentCommand.CanExecute(null), 15);
+                Check(!model.ComponentReady && model.ComponentStatus.Contains("失败"), "missing host did not fail clearly");
+                model.Settings.AgentHostPath = originalHost;
+                model.ConnectAgentCommand.Execute(null);
+                WaitFor(() => model.ComponentReady, 100);
                 Check(Task.Run(async () => await model.DisposeAsync()).Wait(TimeSpan.FromSeconds(10)), "connected application deadlocked during shutdown");
                 model = null;
             });
@@ -184,10 +253,19 @@ internal static class Program
     }
 
     private static void Check(bool condition, string message) { if (!condition) throw new Exception(message); }
+    private static void WaitFor(Func<bool> condition, int seconds)
+    {
+        var timer = Stopwatch.StartNew();
+        while (!condition() && timer.Elapsed < TimeSpan.FromSeconds(seconds)) { Pump(); Thread.Sleep(15); }
+        Check(condition(), "operation timed out");
+    }
     private static void Pump()
     {
+        foreach (Window active in Application.Current.Windows) active.UpdateLayout();
         var frame = new DispatcherFrame();
-        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
+        var timer = new DispatcherTimer(DispatcherPriority.ApplicationIdle) { Interval = TimeSpan.FromMilliseconds(40) };
+        timer.Tick += (_, _) => { timer.Stop(); frame.Continue = false; };
+        timer.Start();
         Dispatcher.PushFrame(frame);
     }
     private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
@@ -212,6 +290,16 @@ internal static class Program
         public List<string> Messages { get; } = [];
         public override void Write(string? message) { if (!string.IsNullOrEmpty(message)) Messages.Add(message); }
         public override void WriteLine(string? message) => Write(message);
+    }
+    private sealed class GoogleHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            object value = request.RequestUri!.AbsolutePath == "/token"
+                ? new { access_token = "synthetic-access", refresh_token = "synthetic-refresh", expires_in = 3600, scope = GmailAuth.Scopes }
+                : new { emailAddress = "sender@example.org" };
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, "application/json") });
+        }
     }
     private sealed class TestTransport : IMailTransport
     {

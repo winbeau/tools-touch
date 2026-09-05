@@ -26,7 +26,13 @@ def download(url, path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=ROOT / "artifacts" / "ToolsTouch-win-x64")
+    parser.add_argument("--google-client", type=Path, help="Publisher-provided Google Desktop OAuth client JSON to bundle")
     args = parser.parse_args()
+    if args.google_client:
+        config = json.loads(args.google_client.read_text(encoding="utf-8-sig"))
+        installed = config.get("installed", {})
+        if not isinstance(installed, dict) or not str(installed.get("client_id", "")).endswith(".apps.googleusercontent.com"):
+            raise SystemExit("Google configuration must be a Desktop app OAuth client JSON")
     output = args.output.resolve()
     archive_output = Path(str(output) + ".zip")
     if output.exists() or archive_output.exists():
@@ -42,6 +48,9 @@ def main():
     with tempfile.TemporaryDirectory(prefix="tools-touch-package-", dir=output.parent) as temporary:
         staging = Path(temporary) / "app"
         run(dotnet, "publish", "src/ToolsTouch.Desktop", "-c", "Release", "-r", "win-x64", "--self-contained", "true", "-o", str(staging))
+        if args.google_client:
+            (staging / "config").mkdir(exist_ok=True)
+            shutil.copy2(args.google_client, staging / "config" / "google-client.json")
         host = staging / "agent-host"
         host.mkdir()
         shutil.copytree(ROOT / "agent-host" / "dist", host / "dist")

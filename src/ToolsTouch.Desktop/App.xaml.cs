@@ -1,4 +1,5 @@
 using System.Windows;
+using ToolsTouch.Core;
 
 namespace ToolsTouch.Desktop;
 
@@ -9,6 +10,14 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        var diagnostics = new DiagnosticLog(DesktopSettings.DataDirectory);
+        diagnostics.Write("application", "launch");
+        DispatcherUnhandledException += (_, args) =>
+        {
+            diagnostics.Write("application", "unhandled", DiagnosticLog.ErrorCode(args.Exception), args.Exception);
+            args.Handled = true;
+            MessageBox.Show("程序遇到异常，诊断日志已保存。请重新打开程序。", "Tools Touch"); Shutdown(1);
+        };
         instanceMutex = new Mutex(true, "Local\\ToolsTouch", out var firstInstance);
         if (!firstInstance) { MessageBox.Show("Tools Touch 已在运行。", "Tools Touch"); instanceMutex.Dispose(); instanceMutex = null; Shutdown(); return; }
         try
@@ -19,7 +28,8 @@ public partial class App : Application
         }
         catch (Exception error)
         {
-            MessageBox.Show("启动失败：" + error.Message, "Tools Touch", MessageBoxButton.OK, MessageBoxImage.Error);
+            diagnostics.Write("application", "startup_failed", DiagnosticLog.ErrorCode(error), error);
+            MessageBox.Show("程序无法启动，诊断日志已保存至：" + diagnostics.DirectoryPath, "Tools Touch", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
     }

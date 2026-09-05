@@ -9,8 +9,8 @@
 安装器由 [Inno Setup](https://jrsoftware.org/isinfo.php) 构建。Windows 开发机安装 Inno Setup 6.3 或更新版本和 Python 3 后，可基于已校验的便携包重建：
 
 ```powershell
-python scripts/build-installer.py --package artifacts/ToolsTouch-win-x64-r3.zip --version 0.1.0 --output artifacts/release-v0.1.0
-python scripts/test-installer.py --installer artifacts/release-v0.1.0/ToolsTouch-Setup-0.1.0-win-x64.exe --test-exe artifacts/desktop-tests-win/ToolsTouch.Desktop.Tests.exe --output artifacts/installer-check
+python scripts/build-installer.py --package artifacts/ToolsTouch-win-x64-v0.2.0-login.zip --version 0.2.0 --output artifacts/release-v0.2.0-login
+python scripts/test-installer.py --installer artifacts/release-v0.2.0-login/ToolsTouch-Setup-0.2.0-win-x64.exe --test-exe artifacts/desktop-tests-v0.2.0-login/ToolsTouch.Desktop.Tests.exe --output artifacts/installer-check
 ```
 
 `ISCC_EXE` 可指定编译器位置。构建器只提取并打包便携包清单内通过 SHA-256 校验的文件；输出安装 EXE、`SHA256SUMS.txt` 与构建元数据，已有输出目录不会覆盖。安装测试要求当前 Windows 用户尚未安装 Tools Touch，会在临时目录执行安装、逐文件校验、重复安装修复、桌面回归及卸载，不使用真实账号或发送邮件。
@@ -25,15 +25,31 @@ python scripts/test-installer.py --installer artifacts/release-v0.1.0/ToolsTouch
 
 不要把 Gmail 凭据放入 Pi 目录。迁移到另一台机器或 Windows 用户时，应重新连接 Gmail；DPAPI 凭据不适合跨用户直接复制。
 
+## 首次登录
+
+首次打开必须使用 Gmail 登录后才能进入工作台。此 Gmail 同时作为本地应用的登录账号和投递邮箱，界面显示当前账号；未登录或授权失败时，研究和资料操作不可用。组件加载在登录页后台自动进行。
+
+授权成功后，刷新凭据由当前 Windows 用户 DPAPI 加密保存；下次打开保留登录。凭据缺失、损坏或无法解密时回到登录页。此版本是本地桌面应用，没有独立服务器账号或云端资料同步，研究资料仍保存在当前 Windows 用户的数据目录。
+
+Gmail 登录要求发布者先提供有效的 Google 桌面 OAuth 客户端配置。如果安装包未预置，可在登录页导入 JSON；没有配置时无法完成登录，也无法进入工作台。Google 测试模式还需将登录邮箱添加到项目测试用户中。
+
 ## 首次配置
 
-1. 在 Settings 点击“启动 / 重新连接 Pi”，再点“OpenAI 登录”。点击“打开登录浏览器”完成 Pi 提供的 OAuth 流程；只有 Pi 要求时才填写手动授权码。WPF 不交换、保存或读取 OpenAI Token。认证仍由 Pi 的 Provider 管理。
-2. 选择 Pi 返回的模型，保存设置。当前状态区区分已配置凭据与实际调用可用性；真实模型调用仍是最终可用性的验证。
-3. 网页搜索需要 Brave Search API 凭据。把密钥保存到本机私有文本文件，在“Agent 与检索配置”填入文件路径。只由 C# 搜索服务读取，不传给 Pi。账户方案、余额和配额须由 API 凭据持有人确认；没有配置时发现任务返回明确错误，不生成假结果。
+1. 打开程序后自动加载组件，顶部显示加载进度和阶段，无需手动启动。先完成 Gmail 登录，再进入 Settings 选择服务商及授权方式；安装版本优先使用随包组件，避免升级后引用已删除的旧便携目录。
+2. OpenAI · ChatGPT 账户支持浏览器授权与设备码授权；OpenAI API、DeepSeek、Claude、GLM 等支持组件提供的授权方式。API Key 在密码框输入，保存后清空输入框，不写入普通设置或诊断日志。浏览器授权会自动打开系统浏览器；重复点击受状态限制，未完成可取消再重试。选择模型后保存设置，研究任务使用所选服务商。凭据保存不代表额度或真实调用已经验证。
+3. 网页搜索需要 Brave Search API 凭据。把密钥保存到本机私有文本文件，在“检索与任务配置”填入文件路径。只由 C# 搜索服务读取，不传给 Pi。账户方案、余额和配额须由 API 凭据持有人确认；没有配置时发现任务返回明确错误，不生成假结果。
 4. 导入 CV PDF，核对提取文本，填写研究兴趣、项目和技能，点击确认保存。未确认的 CV 内容不会作为个人经历传给模型；每次确认创建新版本，正在执行的任务固定已有版本。
-5. Gmail：在自己的 Google Cloud 项目启用 Gmail API，创建 **Desktop app** OAuth 客户端，下载客户端 JSON。在 Settings 填入该文件路径并点击连接 Gmail。授权请求仅包含 `gmail.send` 和 `gmail.readonly`。Google 测试模式需将使用账号列为测试用户；公开发布前处理相应 OAuth 验证要求。
+5. Gmail 客户端（发布者配置）：在自己的 Google Cloud 项目启用 Gmail API，创建 **Desktop app** OAuth 客户端，下载客户端 JSON。在 Settings 点击“导入 Google 客户端配置”，再连接 Gmail。若不清楚此配置是什么，请联系应用发布者提供；它不是 Gmail 密码。授权请求仅包含 `gmail.send` 和 `gmail.readonly`。Google 测试模式需将使用账号列为测试用户；公开发布前处理相应 OAuth 验证要求。
 
-资料保存在本地；模型任务会把选取的网页、论文片段及已确认经历发送给当前 OpenAI Provider。Gmail 的刷新凭据与邮箱内容不会交给 Agent。
+资料保存在本地；模型任务会把选取的网页、论文片段及已确认经历发送给选定的模型服务商。Gmail 的刷新凭据与邮箱内容不会交给 Agent。
+
+## 日志与登录排错
+
+应用诊断日志在 `%LOCALAPPDATA%\ToolsTouch\logs`，Settings 可打开目录或导出 ZIP。记录加载、授权阶段、分类错误代码和异常类型，不记录原始异常正文、URL、API Key、授权码、CV 或邮件正文；保留 14 天，每日日志超过约 2 MB 时轮换。研究任务事件仍保存在数据库中。
+
+`RUN_BUSY` 表示研究任务未结束；`AUTH_IN_PROGRESS` 表示授权未结束。可取消对应操作再试。OpenAI 回调端口被占用时可改用设备码。Gmail 会区分客户端缺失/类型错误、拒绝授权、权限不足、Gmail API 未启用、授权失效及无法解密旧凭据。
+
+发布者可用 `python scripts/package.py --google-client C:\Private\google-desktop-client.json` 将自己的 Google 桌面 OAuth 客户端配置随包发布；应用会自动发现它。仓库不提供有效的 Google 客户端注册，未带配置的安装包仍需导入。公开分发前需完成该 Google 项目的授权配置及适用验证。
 
 ## 核心操作
 
@@ -57,7 +73,7 @@ dotnet run --project tests/ToolsTouch.Core.Tests
 dotnet run --project src/ToolsTouch.Desktop
 ```
 
-源码启动时，在 Settings 将 AgentHost 路径设为仓库 `agent-host\dist\index.js`；Node 填安装位置或 PATH 中的 `node`。便携包默认自动使用随包 Node 和 AgentHost。
+源码运行时自动向上查找仓库 `agent-host\dist\index.js`，Node 需位于 PATH；自定义路径可在本地 settings.json 中设置。安装包和便携包自动使用随包组件。
 
 构建便携包还需要 Python 3：
 
@@ -67,22 +83,22 @@ python scripts/package.py
 
 脚本先运行测试，再交叉发布 Windows x64，安装锁定的 Windows 生产依赖，下载并校验官方 Node 压缩包的 SHA-256。脚本不发布、不签名、不调用真实模型、不发送真实邮件；已有输出不会被覆盖，可用 `--output` 指定新目录。
 
-可用 `python scripts/verify-package.py artifacts/ToolsTouch-win-x64-r3` 验证生成目录的全部文件哈希。校验只证明产物与构建清单一致，不是代码签名或 Windows 运行验证。
+可用 `python scripts/verify-package.py artifacts/ToolsTouch-win-x64-v0.2.0-login` 验证生成目录的全部文件哈希。校验只证明产物与构建清单一致，不是代码签名或 Windows 运行验证。
 
 ## 可重复的 Windows 原生检查
 
 在 Windows 上安装 .NET SDK 10.0.400 和 Python 3 后运行：
 
 ```powershell
-python scripts/test-windows.py --package artifacts/ToolsTouch-win-x64-r3 --output artifacts/windows-check
+python scripts/test-windows.py --package artifacts/ToolsTouch-win-x64-v0.2.0-login --output artifacts/windows-check
 ```
 
-脚本发布桌面测试程序，将其与包内 Node / AgentHost 复制到 Windows 临时目录，然后在 STA 界面线程上加载实际 MainWindow 与 MainViewModel。每次输出目录必须是新目录，内含 `results.json`、六页及三个详情子页 PNG。整个过程不打开登录流程、不读取正式应用资料、不发送真实邮件，结束后清理临时运行目录。窗口在屏幕外渲染，因此截图是实际 WPF 渲染结果，不是人工操作录像。
+脚本发布桌面测试程序，将其与包内 Node / AgentHost 复制到 Windows 临时目录，然后在 STA 界面线程上加载实际 MainWindow 与 MainViewModel。每次输出目录必须是新目录，内含 `results.json`、六页及三个详情子页 PNG。整个过程只使用隔离的模拟 Google 授权和合成模型密钥，不打开真实登录浏览器、不读取正式应用资料、不发送真实邮件，结束后清理临时运行目录。窗口在屏幕外渲染，因此截图是实际 WPF 渲染结果，不是人工操作录像。
 
-如果使用 WSL 交叉构建，可先执行以下命令，再从 Windows 调用上面的脚本并追加 `--test-exe artifacts/desktop-tests-win/ToolsTouch.Desktop.Tests.exe`，Windows 侧无需另外安装 SDK：
+如果使用 WSL 交叉构建，可先执行以下命令，再从 Windows 调用上面的脚本并追加 `--test-exe artifacts/desktop-tests-v0.2.0-login/ToolsTouch.Desktop.Tests.exe`，Windows 侧无需另外安装 SDK：
 
 ```sh
-dotnet publish tests/ToolsTouch.Desktop.Tests -c Release -r win-x64 --self-contained true -o artifacts/desktop-tests-win
+dotnet publish tests/ToolsTouch.Desktop.Tests -c Release -r win-x64 --self-contained true -o artifacts/desktop-tests-v0.2.0-login
 ```
 
 检查范围包括合成凭据加密落盘、另一个 Windows 进程解密、损坏检测与删除；页面切换、草稿保存与未保存内容保留、空选择清理、已发送锁定；实际包内 Pi 的匿名状态握手；以及模拟应用退出时界面线程等待清理的死锁回归。不会证明 Google 刷新凭据、真实模型工具调用或发送成功。
