@@ -53,6 +53,7 @@ static class WorkspaceRoundTripTests
 
         var restoreDirectory = Path.Combine(directory, "restored-workspace");
         var restored = exporter.RestoreToNewWorkspace(bundlePath, restoreDirectory);
+        using (File.Open(restored.DatabasePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
         var restoredDatabase = new LocalDatabase(restored.DatabasePath);
         var restoredCatalog = new SystemCollectionAdapter(restoredDatabase);
         var restoredQuery = new RecordQueryService(restoredDatabase).Query(new RecordQueryRequest(collection.Id, ViewId: view.Id, Limit: 10));

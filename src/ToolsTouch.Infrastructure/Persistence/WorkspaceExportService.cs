@@ -31,7 +31,7 @@ public sealed class WorkspaceExportService(LocalDatabase database, string python
         try
         {
             var metadata = CreateSnapshot(snapshotPath);
-            using var snapshot = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = snapshotPath, ForeignKeys = true }.ToString());
+            using var snapshot = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = snapshotPath, ForeignKeys = true, Pooling = false }.ToString());
             snapshot.Open();
             var tableDumps = DumpTables(snapshot, staging, scope, request.CollectionId, request.IncludeHistory, cancellationToken);
             CopyAttachments(snapshot, staging, request.IncludeAttachments, cancellationToken, out var excluded, out var missingFiles);
@@ -99,7 +99,7 @@ public sealed class WorkspaceExportService(LocalDatabase database, string python
             VerifyBundleFiles(extraction, manifest, cancellationToken);
             Directory.CreateDirectory(destination);
             var databasePath = Path.Combine(destination, "tools-touch.db");
-            var restored = new LocalDatabase(databasePath);
+            var restored = new LocalDatabase(databasePath) { Pooling = false };
             restored.Initialize();
             var rows = RestoreTables(restored, extraction, manifest, cancellationToken);
             RestoreAttachments(extraction, restored.ArtifactDirectory, manifest, cancellationToken);
@@ -119,7 +119,7 @@ public sealed class WorkspaceExportService(LocalDatabase database, string python
     private WorkspaceMetadata CreateSnapshot(string path)
     {
         using var source = database.Open();
-        using var target = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path, ForeignKeys = true }.ToString());
+        using var target = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path, ForeignKeys = true, Pooling = false }.ToString());
         target.Open();
         source.BackupDatabase(target);
         return ReadMetadata(target);

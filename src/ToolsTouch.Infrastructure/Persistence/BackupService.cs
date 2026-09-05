@@ -23,7 +23,7 @@ public sealed class BackupService(LocalDatabase database) : IWorkspaceBackup
             using (var source = database.Open())
             {
                 metadata = ReadMetadata(source);
-                using var target = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = databaseFile, ForeignKeys = true }.ToString());
+                using var target = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = databaseFile, ForeignKeys = true, Pooling = false }.ToString());
                 target.Open();
                 source.BackupDatabase(target);
                 CopyReferencedArtifacts(source, staging, artifacts);
@@ -66,7 +66,7 @@ public sealed class BackupService(LocalDatabase database) : IWorkspaceBackup
             if (!File.Exists(path) || new FileInfo(path).Length != artifact.ByteLength || !HashFile(path).Equals(artifact.Sha256, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidDataException("BACKUP_ARTIFACT_HASH_MISMATCH: " + artifact.Path);
         }
-        using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = databaseFile, Mode = SqliteOpenMode.ReadOnly, ForeignKeys = true }.ToString());
+        using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = databaseFile, Mode = SqliteOpenMode.ReadOnly, ForeignKeys = true, Pooling = false }.ToString());
         connection.Open();
         using (var integrity = connection.CreateCommand())
         {

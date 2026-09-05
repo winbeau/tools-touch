@@ -4,6 +4,7 @@ namespace ToolsTouch.Core;
 
 public sealed class LocalDatabase(string path)
 {
+    public bool Pooling { get; init; } = true;
     public string DatabasePath => Path.GetFullPath(path);
     public string ArtifactDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!, "artifacts");
 
@@ -12,7 +13,7 @@ public sealed class LocalDatabase(string path)
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         var connection = new SqliteConnection(new SqliteConnectionStringBuilder
         {
-            DataSource = path, ForeignKeys = true, DefaultTimeout = 15
+            DataSource = path, ForeignKeys = true, DefaultTimeout = 15, Pooling = Pooling
         }.ToString());
         connection.Open();
         return connection;

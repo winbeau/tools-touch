@@ -54,6 +54,8 @@ static class EvidenceTests
         var backupService = new BackupService(database);
         var backup = backupService.Create(Path.Combine(directory, "workspace-backup"));
         var verified = backupService.Verify(backup.DirectoryPath);
+        // A completed backup/verification must release Windows file handles.
+        using (File.Open(Path.Combine(backup.DirectoryPath, "database.db"), FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
         Check(verified.WorkspaceId == new OrganizationRepository(database).Get().WorkspaceId &&
             verified.ArtifactCount >= 2 && verified.DataRevision > 0, "workspace backup validates database and referenced artifacts");
         File.AppendAllText(Path.Combine(backup.DirectoryPath, "database.db"), "corrupt");
