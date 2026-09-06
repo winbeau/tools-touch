@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "installerSha256": "815b19ab659549a600e4d2ab793afe02b52e5b438ae24ea487a85b960ac2da0b",
+  "previousInstallerSha256": null,
+  "checks": [
+    "per-user installation and uninstall registration",
+    "all 15302 installed file hashes",
+    "repeat installation repairs files and preserves user-created files",
+    "bundled Python runtime imports collector and production dependencies",
+    "installed Node/Pi and identical desktop assemblies pass native regression suite",
+    "uninstall removes application and registry entry while preserving user-created files"
+  ],
+  "realAccountsUsed": false,
+  "realMailSent": false
+}

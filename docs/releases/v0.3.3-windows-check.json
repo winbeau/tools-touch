@@ -1,0 +1,102 @@
+{
+  "platform": "Microsoft Windows NT 10.0.26100.0",
+  "runtime": "10.0.11",
+  "executedAt": "2026-09-06T02:58:22.0211182+00:00",
+  "realAccountsUsed": false,
+  "realMailSent": false,
+  "failures": 0,
+  "results": [
+    {
+      "name": "DPAPI persistence, replacement, tamper detection and deletion",
+      "passed": true
+    },
+    {
+      "name": "isolated settings round trip",
+      "passed": true
+    },
+    {
+      "name": "first launch requires Gmail; failed login cannot unlock workspace",
+      "passed": true
+    },
+    {
+      "name": "Gmail login unlocks app, identifies sender and survives reopening",
+      "passed": true
+    },
+    {
+      "name": "window automatically loads components and provider catalogue",
+      "passed": true
+    },
+    {
+      "name": "native API key configuration, duplicate prevention and log redaction",
+      "passed": true
+    },
+    {
+      "name": "missing Gmail configuration is explained and can be retried",
+      "passed": true
+    },
+    {
+      "name": "manual browser mode copies the current model URL without opening a browser",
+      "passed": true
+    },
+    {
+      "name": "eleven pages and detail tabs render without binding errors",
+      "passed": true
+    },
+    {
+      "name": "recommendation center keeps scope, coverage and run comparison visible",
+      "passed": true
+    },
+    {
+      "name": "grouped navigation, contextual return and unsaved draft survive page switches",
+      "passed": true
+    },
+    {
+      "name": "record filters, selection and pending edits survive refresh with optimistic revisions",
+      "passed": true
+    },
+    {
+      "name": "application details retain pending edits and material selection during refresh",
+      "passed": true
+    },
+    {
+      "name": "native keyboard focus, combo labels and validation feedback",
+      "passed": true
+    },
+    {
+      "name": "mail loading state disables edits and preserves the pending body",
+      "passed": true
+    },
+    {
+      "name": "all pages remain bounded at minimum, standard and wide window sizes",
+      "passed": true
+    },
+    {
+      "name": "native WPF handles 100, 125 and 150 percent DPI change messages",
+      "passed": true
+    },
+    {
+      "name": "advanced forms, settings tabs and context tabs stay reachable and preserve scroll",
+      "passed": true
+    },
+    {
+      "name": "unknown delivery is visibly locked and cannot be resent",
+      "passed": true
+    },
+    {
+      "name": "draft selection, editing, saving and refresh preserve the editor",
+      "passed": true
+    },
+    {
+      "name": "filtering away the selected professor clears dependent detail",
+      "passed": true
+    },
+    {
+      "name": "component retry and UI-thread shutdown",
+      "passed": true
+    },
+    {
+      "name": "no WPF binding errors during interactions",
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "sourceCommit": "a0e3c877fb44639be509a4763ba2e1c22260f664",
+  "ciRun": "https://github.com/winbeau/tools-touch/actions/runs/34007417563",
+  "ciJobs": [
+    {
+      "name": "python",
+      "conclusion": "success"
+    },
+    {
+      "name": "node",
+      "conclusion": "success"
+    },
+    {
+      "name": "windows-package",
+      "conclusion": "success"
+    },
+    {
+      "name": "core",
+      "conclusion": "success"
+    }
+  ],
+  "windowsBuild": {
+    "runId": 34007420417,
+    "job": "build",
+    "conclusion": "success"
+  },
+  "publication": {
+    "runId": 34008056317,
+    "conclusion": "success"
+  },
+  "release": "https://github.com/winbeau/tools-touch/releases/tag/v0.3.3",
+  "prerelease": false,
+  "assetCount": 13,
+  "allRemoteAssetDigestsVerified": true
+}

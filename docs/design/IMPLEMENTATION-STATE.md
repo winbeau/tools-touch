@@ -574,3 +574,11 @@
 - 修正为先归一化安装根目录，再验证文件路径归属和哈希；两类错误分开报告，未放宽目录边界或哈希要求。Windows 原生新增两项回归均退出 0（实际 8.3 短路径复现、损坏及越界拒绝；没有跳过）。发布保护五项回归通过。版本提升到 v0.3.3，由新标签重新触发同一完整流程。
 - v0.3.3 Actions 34007420417 的 Windows build job 全部成功：便携包、安装器、全新安装、真实 v0.3.1 升级、两轮 23 组原生 UI、修复及卸载保留合成资料通过。常规 CI 34007417563 全部 success。13 个产物已上传草稿，publish job 因按 tag 查询未公开草稿收到 404 而停止。
 - 修复发布脚本改用认证后的 releases 列表查找草稿 ID，再验证资产和公开；新增对应成功路径与远端哈希损坏阻断回归，六项保护测试通过（0）。新增 release-publish.yml 用于复用已成功 build 的原始 artifact，仅允许源码标签一致且 build job success，不重新构建应用或改写标签。正式 v0.3.3 产物源码保持 a0e3c877fb44639be509a4763ba2e1c22260f664。
+
+### v0.3.3 最终正式发布验收
+
+- 状态：Verified，已正式公开并设为 Latest；author 为 github-actions[bot]，draft=false、prerelease=false。最终资产全部由 Windows Actions 构建并经发布工作流上传，本地候选未上传。历史五个预发布版本均改为正式状态，旧标签及资产保留；v0.3.2 候选未公开。
+- 原始构建 [34007420417](https://github.com/winbeau/tools-touch/actions/runs/34007420417) 的 build job 成功（发布步骤曾因草稿查询失败）；恢复发布 [34008056317](https://github.com/winbeau/tools-touch/actions/runs/34008056317) 全部成功，直接复用原始受测 artifact。应用源码标签为 a0e3c877fb44639be509a4763ba2e1c22260f664；发布脚本修正位于 49b287a，不改应用资产。
+- 常规 CI 34007417563 的 Node、Python、Core、Windows package 全部 success。全新安装和真实 v0.3.1 EXE 升级分别验证全部 15,302 文件哈希、安装修复、两轮 23 组原生检查及卸载保留合成用户资料。测试程序集与安装程序集一致；无真实账号及真实邮件。
+- Release 共 13 个资产，远端 digest 全部与 SHA256SUMS.txt 一致。EXE 104,067,133 字节，SHA-256 `815b19ab659549a600e4d2ab793afe02b52e5b438ae24ea487a85b960ac2da0b`；便携 ZIP 154,308,355 字节，SHA-256 `976a869629a211ee463fce105bfe7a0f5458dd9aef51565ca56593c8d141418c`。原生检查、安装／升级、DPI 与 CI 摘要复制到 docs/releases/v0.3.3-*-check.json（升级文件为 v0.3.3-installer-upgrade.json）；完整 PNG 位于 Release 的 UI-SCREENSHOTS.zip。
+- 本轮发布命令为提交并推送 main／v0.3.3 标签，再用 `gh workflow run release-publish.yml --ref main -f tag=v0.3.3 -f build_run_id=34007420417` 恢复发布（退出 0）。最终读取 Release、原生报告及资产 SHA-256 复核退出 0。未触碰 pi/auth.json；真实跨显示器人工 DPI、真实账号完整业务验收及代码签名仍未完成。

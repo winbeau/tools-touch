@@ -1,0 +1,30 @@
+{
+  "initialDpi": 96,
+  "realMonitorTransitionsVerified": false,
+  "observations": [
+    {
+      "requestedDpi": 96,
+      "actualDpi": 96,
+      "actualScale": 1,
+      "method": "WM_DPICHANGED sent to isolated native WPF HWND; no operating-system display setting changed"
+    },
+    {
+      "requestedDpi": 120,
+      "actualDpi": 120,
+      "actualScale": 1.25,
+      "method": "WM_DPICHANGED sent to isolated native WPF HWND; no operating-system display setting changed"
+    },
+    {
+      "requestedDpi": 144,
+      "actualDpi": 144,
+      "actualScale": 1.5,
+      "method": "WM_DPICHANGED sent to isolated native WPF HWND; no operating-system display setting changed"
+    },
+    {
+      "requestedDpi": 96,
+      "actualDpi": 96,
+      "actualScale": 1,
+      "method": "WM_DPICHANGED sent to isolated native WPF HWND; no operating-system display setting changed"
+    }
+  ]
+}
