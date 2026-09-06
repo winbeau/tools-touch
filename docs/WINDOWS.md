@@ -91,6 +91,17 @@ uv run --all-packages --locked python scripts/package.py
 
 可用 `uv run --all-packages --locked python scripts/verify-package.py artifacts/ToolsTouch-win-x64-v0.3.2` 验证生成目录的全部文件哈希。校验只证明产物与构建清单一致，不是代码签名或 Windows 运行验证。
 
+## GitHub Actions 正式发布
+
+今后打包与发布统一由 `.github/workflows/release.yml` 完成。本地打包脚本用于开发诊断，正式资产以工作流构建为准。
+
+1. 修改 Desktop 项目的 Version，添加同版本 `docs/releases/vX.Y.Z.md`，提交并推送。
+2. 创建并推送对应 `vX.Y.Z` 标签；也可在 Actions 的 Release Windows desktop 中输入已有标签重跑尚未公开的失败发布。
+3. 工作流在 Windows 上执行基础测试、便携包哈希、安装器全新安装／修复／卸载与原生 UI 检查，并自动下载最近的旧版安装器验证升级。
+4. 所有检查通过后上传资产，逐一验证远端 SHA-256，再公开正式 Release 并设为 Latest。不会创建预发布，也不会覆盖已公开版本。
+
+仓库需配置 `GOOGLE_DESKTOP_CLIENT_JSON` Actions secret，内容为发布者桌面 OAuth 客户端配置（本仓库已配置）。它是随公开安装包分发的登录客户端配置，不是个人访问令牌；不要放 Gmail token、模型密钥或 `pi/auth.json`。构建 job 仅有仓库读取权限，发布 job 才有 contents write 权限。详细验收 JSON、DPI／布局记录和截图随 Release 与 Actions artifact 保留。
+
 ## 可重复的 Windows 原生检查
 
 在 Windows 上安装 .NET SDK 10.0.400 和 Python 3 后运行：

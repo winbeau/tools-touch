@@ -561,3 +561,10 @@
 - 实际验证：WSL 调用 Windows 程序退出 0；Core 的 dotnet run 可执行回归退出 0；WPF self-contained publish 退出 0；最终原生测试退出 0，23 / 23 组通过，零绑定错误。54 / 54 个旧命令入口保留，当前 57 个。
 - 原生覆盖：11 页及局部标签；1040×720、1360×900、1600×1000 窗口；Tab 焦点、下拉框、校验、折叠操作滚动可达；空结果、未保存编辑、邮件加载、Unknown 锁定。初始原生 DPI 为 144；隔离 HWND 注入 WM_DPICHANGED 后实际报告 96→120→144→96，每种 DPI 均检查并截图 11 页。未修改系统显示设置；消息注入不等同于人工跨显示器拖动。
 - 证据：artifacts/ui-redesign/before 为旧界面，artifacts/ui-redesign/final 为最终结果，含 results.json、layout-results.json、dpi-results.json 和前后页面截图；命令与限制详见 [UI-WORKBENCH-VALIDATION.md](UI-WORKBENCH-VALIDATION.md)。所有数据及账号为隔离合成替身，没有发送真实邮件。保留未跟踪 pi/auth.json，未读取其内容。
+## 8. v0.3.2 正式发布与 Actions 交付（2026-09-05）
+
+- 用户追加授权 add／commit／push／release，随后明确要求全部正式 Release，今后打包发布交给 GitHub workflow。历史预发布状态改为正式，旧标签及资产保留。
+- 界面应用提交 65b10cd；GitHub Actions 34006412407 的 Node、Python、Core、Windows package／原生检查全部 success。Linux 本地 package.py、Windows build-installer.py 和四层测试／应用程序集逐字节比对均退出 0。本地候选不作为本次最终发布资产。
+- 新增 release.yml 和 scripts/release.py：标签与应用版本一致性检查、Windows 全量构建、包校验、安装／修复／原生 UI／卸载、自动选择旧版 EXE 升级检查、截图与 SHA-256 清单。发布 job 下载构建 artifact，验证本地及远端资产后才公开正式 Release；已公开版本不可覆盖。支持标签触发和输入既有标签手动重跑。
+- 发布用 Google 桌面 OAuth 配置沿用此前公开包，存入 GOOGLE_DESKTOP_CLIENT_JSON 仓库 secret；未读取或提交 pi/auth.json，未使用真实账号或发送邮件。提供两个旧界面基准截图，其余截图由工作流的实际安装后测试生成。
+- 本记录提交时新发布工作流尚待运行，不能将它标记通过。最终版本、源码 SHA、工作流链接与原生／安装结果由 Release 附件 RELEASE-BUILD.json、WINDOWS-CHECK.json、INSTALLER-CHECK.json、INSTALLER-UPGRADE.json 记录。真实跨显示器人工拖动、真实账号业务验收与代码签名仍未完成。

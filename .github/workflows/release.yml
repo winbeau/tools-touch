@@ -1,0 +1,123 @@
+name: Release Windows desktop
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing version tag, for example v0.3.2'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: 0.9.17
+          python-version: 3.12.12
+      - id: version
+        name: Verify immutable version tag
+        run: uv run --isolated --no-project python scripts/release.py validate
+      - name: Test publication guards
+        run: uv run --isolated --no-project python -m unittest discover -s scripts -p test_release.py
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.16.0
+          cache: pnpm
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.400
+      - name: Prepare publisher login configuration
+        env:
+          GOOGLE_DESKTOP_CLIENT_JSON: ${{ secrets.GOOGLE_DESKTOP_CLIENT_JSON }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:GOOGLE_DESKTOP_CLIENT_JSON)) { throw 'Missing GOOGLE_DESKTOP_CLIENT_JSON repository secret' }
+          New-Item -ItemType Directory -Path artifacts -Force | Out-Null
+          [IO.File]::WriteAllText("$pwd/artifacts/google-client.json", $env:GOOGLE_DESKTOP_CLIENT_JSON, [Text.UTF8Encoding]::new($false))
+      - run: uv sync --all-packages --locked
+      - name: Test and build portable package
+        run: uv run --all-packages --locked python scripts/package.py --output artifacts/ToolsTouch-win-x64-${{ steps.version.outputs.tag }} --public --google-client artifacts/google-client.json
+      - name: Verify portable package
+        run: uv run --all-packages --locked python scripts/verify-package.py artifacts/ToolsTouch-win-x64-${{ steps.version.outputs.tag }}
+      - name: Publish native test executable
+        run: dotnet publish tests/ToolsTouch.Desktop.Tests -c Release -r win-x64 --self-contained true -o artifacts/desktop-tests
+      - name: Ensure Inno Setup compiler
+        run: |
+          if (!(Test-Path "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe")) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed' }
+          }
+      - name: Build installer from verified portable package
+        run: uv run --all-packages --locked python scripts/build-installer.py --package artifacts/ToolsTouch-win-x64-${{ steps.version.outputs.tag }}.zip --version ${{ steps.version.outputs.version }} --output artifacts/release
+      - name: Verify fresh install, repair, native UI and uninstall
+        run: uv run --all-packages --locked python scripts/test-installer.py --installer artifacts/release/ToolsTouch-Setup-${{ steps.version.outputs.version }}-win-x64.exe --test-exe artifacts/desktop-tests/ToolsTouch.Desktop.Tests.exe --output artifacts/installer-check
+      - name: Download previous released installer
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: uv run --all-packages --locked python scripts/release.py previous
+      - name: Verify upgrade from previous release
+        if: steps.previous.outputs.available == 'true'
+        run: uv run --all-packages --locked python scripts/test-installer.py --installer artifacts/release/ToolsTouch-Setup-${{ steps.version.outputs.version }}-win-x64.exe --previous-installer artifacts/previous/previous-installer.exe --test-exe artifacts/desktop-tests/ToolsTouch.Desktop.Tests.exe --output artifacts/installer-upgrade
+      - name: Assemble checked assets, screenshots and checksums
+        run: uv run --all-packages --locked python scripts/release.py collect
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: artifacts/release
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-native-evidence
+          path: |
+            artifacts/installer-check
+            artifacts/installer-upgrade
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.build.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.tag }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: 0.9.17
+          python-version: 3.12.12
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: artifacts/release
+      - name: Publish formal release after remote asset verification
+        run: uv run --isolated --no-project python scripts/release.py publish
