@@ -568,3 +568,7 @@
 - 新增 release.yml 和 scripts/release.py：标签与应用版本一致性检查、Windows 全量构建、包校验、安装／修复／原生 UI／卸载、自动选择旧版 EXE 升级检查、截图与 SHA-256 清单。发布 job 下载构建 artifact，验证本地及远端资产后才公开正式 Release；已公开版本不可覆盖。支持标签触发和输入既有标签手动重跑。
 - 发布用 Google 桌面 OAuth 配置沿用此前公开包，存入 GOOGLE_DESKTOP_CLIENT_JSON 仓库 secret；未读取或提交 pi/auth.json，未使用真实账号或发送邮件。提供两个旧界面基准截图，其余截图由工作流的实际安装后测试生成。
 - 本记录提交时新发布工作流尚待运行，不能将它标记通过。最终版本、源码 SHA、工作流链接与原生／安装结果由 Release 附件 RELEASE-BUILD.json、WINDOWS-CHECK.json、INSTALLER-CHECK.json、INSTALLER-UPGRADE.json 记录。真实跨显示器人工拖动、真实账号业务验收与代码签名仍未完成。
+### v0.3.3 发布脚本修正
+
+- v0.3.2 的 Actions 34007045836 完成公开便携包构建、全文件哈希、测试程序集与安装器生成；安装测试因临时目录 RUNNER~1 与 resolve 后 runneradmin 路径比较而误报 Accessibility.dll 越界，发布 job 自动跳过，未公开 Release。失败日志保留 artifacts/release-actions-failure-v0.3.2。v0.3.2 标签不改写。
+- 修正为先归一化安装根目录，再验证文件路径归属和哈希；两类错误分开报告，未放宽目录边界或哈希要求。Windows 原生新增两项回归均退出 0（实际 8.3 短路径复现、损坏及越界拒绝；没有跳过）。发布保护五项回归通过。版本提升到 v0.3.3，由新标签重新触发同一完整流程。

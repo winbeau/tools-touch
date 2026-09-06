@@ -40,6 +40,8 @@ jobs:
         run: uv run --isolated --no-project python scripts/release.py validate
       - name: Test publication guards
         run: uv run --isolated --no-project python -m unittest discover -s scripts -p test_release.py
+      - name: Test native installer path guards
+        run: uv run --isolated --no-project python -m unittest discover -s scripts -p test_installer_paths.py
       - uses: pnpm/action-setup@v4
         with:
           version: 10.14.0

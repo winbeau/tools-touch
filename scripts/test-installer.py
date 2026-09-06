@@ -47,6 +47,18 @@ def run(command, cwd, timeout=300):
         raise RuntimeError(f"Process failed with exit code {code}: {Path(command[0]).name}")
 
 
+def verify_installed_files(target, files):
+    # Hosted Windows runners use RUNNER~1 in TEMP. Resolve both sides before
+    # containment checks, so the 8.3 alias and its long name identify one root.
+    root = target.resolve()
+    for name, expected in files.items():
+        path = (root / name).resolve()
+        if not path.is_relative_to(root):
+            raise RuntimeError("Installed file escapes test directory: " + name)
+        if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            raise RuntimeError("Installed file hash mismatch: " + name)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--installer", required=True, type=Path)
@@ -97,10 +109,7 @@ def main():
                 checks.append("upgrade from previous installer preserves user-created files")
             print("PASS: per-user installation and uninstall registration", flush=True)
             manifest = json.loads((target / "BUILD-MANIFEST.json").read_text(encoding="utf-8"))
-            for name, expected in manifest["files"].items():
-                path = (target / name).resolve()
-                if not path.is_relative_to(target) or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
-                    raise RuntimeError("Installed file mismatch: " + name)
+            verify_installed_files(target, manifest["files"])
             checks.append(f"all {len(manifest['files'])} installed file hashes")
             print(f"PASS: all {len(manifest['files'])} installed file hashes", flush=True)
             sentinel = target / "user-created-file.txt"
