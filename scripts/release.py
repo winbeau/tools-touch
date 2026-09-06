@@ -23,6 +23,11 @@ def api(endpoint, *args):
     return json.loads(command('gh', 'api', endpoint, *args))
 
 
+def releases(repo):
+    pages = json.loads(command('gh', 'api', '--paginate', '--slurp', f'repos/{repo}/releases?per_page=100'))
+    return [item for page in pages for item in page]
+
+
 def write(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
@@ -70,9 +75,8 @@ def validate():
 def previous():
     tag, _, repo = context()
     # Read all release pages; select the highest earlier published version.
-    pages = json.loads(command('gh', 'api', '--paginate', '--slurp', f'repos/{repo}/releases?per_page=100'))
     candidates = []
-    for release in (item for page in pages for item in page):
+    for release in releases(repo):
         if release['draft']:
             continue
         try:
@@ -149,6 +153,9 @@ def publish():
     source = read(RELEASE / 'RELEASE-BUILD.json')
     if source['sourceCommit'] != command('git', 'rev-parse', f'refs/tags/{tag}^{{commit}}') or source['version'] != version:
         raise ValueError('Release artifact source differs from immutable version tag')
+    recovered_run = os.environ.get('RELEASE_BUILD_RUN_ID')
+    if recovered_run and source['workflow'] != f'https://github.com/{repo}/actions/runs/{recovered_run}':
+        raise ValueError('Downloaded artifact does not belong to the verified build run')
     sums = dict(line.split('  ', 1)[::-1] for line in (RELEASE / 'SHA256SUMS.txt').read_text(encoding='utf-8').splitlines())
     files = sorted(p for p in RELEASE.iterdir() if p.is_file())
     if set(sums) != {p.name for p in files if p.name != 'SHA256SUMS.txt'}:
@@ -156,8 +163,7 @@ def publish():
     for path in files:
         if path.name in sums and sha(path) != sums[path.name]:
             raise ValueError('Release artifact hash mismatch: ' + path.name)
-    pages = json.loads(command('gh', 'api', '--paginate', '--slurp', f'repos/{repo}/releases?per_page=100'))
-    existing = next((r for page in pages for r in page if r['tag_name'] == tag), None)
+    existing = next((r for r in releases(repo) if r['tag_name'] == tag), None)
     if existing and not existing['draft']:
         raise ValueError('Published releases are immutable; increment the version instead')
     if not existing:
@@ -165,7 +171,9 @@ def publish():
                         '--title', f'Tools Touch {tag} · 研究与申请工作台',
                         '--notes-file', str(RELEASE / 'RELEASE-NOTES.md')], check=True, cwd=ROOT)
     subprocess.run(['gh', 'release', 'upload', tag, '--repo', repo, '--clobber', *map(str, files)], check=True, cwd=ROOT)
-    release = api(f'repos/{repo}/releases/tags/{tag}')
+    # The tag endpoint only returns published releases. Authenticated listing
+    # includes drafts and supplies the numeric ID needed to verify their assets.
+    release = next(r for r in releases(repo) if r['tag_name'] == tag)
     assets = {a['name']: a for a in api(f"repos/{repo}/releases/{release['id']}/assets?per_page=100")}
     if set(assets) != {p.name for p in files}:
         raise ValueError('Remote release asset inventory differs; draft retained')
@@ -181,7 +189,23 @@ def publish():
     print(result['html_url'])
 
 
+def recover():
+    tag, _, repo = context()
+    run_id = os.environ['RELEASE_BUILD_RUN_ID']
+    if not re.fullmatch(r'[1-9]\d*', run_id):
+        raise ValueError('Build run ID must be numeric')
+    run = api(f'repos/{repo}/actions/runs/{run_id}')
+    if run['head_sha'] != command('git', 'rev-parse', f'refs/tags/{tag}^{{commit}}'):
+        raise ValueError('Build run does not match the requested version tag')
+    if run['status'] != 'completed' or run['path'].split('@')[0] != '.github/workflows/release.yml':
+        raise ValueError('Recovery requires a completed release workflow')
+    jobs = api(f'repos/{repo}/actions/runs/{run_id}/jobs')['jobs']
+    if not any(job['name'] == 'build' and job['conclusion'] == 'success' for job in jobs):
+        raise ValueError('Recovery requires a successful complete Windows build and verification job')
+    print('Verified build run:', run['html_url'])
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['validate', 'previous', 'collect', 'publish'])
+    parser.add_argument('action', choices=['validate', 'previous', 'collect', 'publish', 'recover'])
     globals()[parser.parse_args().action]()

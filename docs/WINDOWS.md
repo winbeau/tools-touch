@@ -100,6 +100,8 @@ uv run --all-packages --locked python scripts/package.py
 3. 工作流在 Windows 上执行基础测试、便携包哈希、安装器全新安装／修复／卸载与原生 UI 检查，并自动下载最近的旧版安装器验证升级。
 4. 所有检查通过后上传资产，逐一验证远端 SHA-256，再公开正式 Release 并设为 Latest。不会创建预发布，也不会覆盖已公开版本。
 
+如果 Windows build job 已通过，只在上传或公开草稿时失败，可使用 `Resume verified release publication`，填写原版本标签和成功 build 所在 run ID。它会验证源码与标签一致、原 build job 成功，再下载该 run 的原始产物复核和发布；不重打包、不改写标签。若构建或安装验证失败，应修复并使用新版本标签。
+
 仓库需配置 `GOOGLE_DESKTOP_CLIENT_JSON` Actions secret，内容为发布者桌面 OAuth 客户端配置（本仓库已配置）。它是随公开安装包分发的登录客户端配置，不是个人访问令牌；不要放 Gmail token、模型密钥或 `pi/auth.json`。构建 job 仅有仓库读取权限，发布 job 才有 contents write 权限。详细验收 JSON、DPI／布局记录和截图随 Release 与 Actions artifact 保留。
 
 ## 可重复的 Windows 原生检查

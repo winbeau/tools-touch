@@ -30,7 +30,7 @@ class ReleaseGateTests(unittest.TestCase):
     def run_guard(self, folder, git_result='commit-a', releases='[[]]'):
         def command(*args):
             return git_result if args[0] == 'git' else releases
-        with patch.dict(os.environ, RELEASE_TAG='v0.3.2', GITHUB_REPOSITORY='example/repo'), \
+        with patch.dict(os.environ, RELEASE_TAG='v0.3.2', GITHUB_REPOSITORY='example/repo', RELEASE_BUILD_RUN_ID=''), \
                 patch.object(release, 'RELEASE', folder), patch.object(release, 'command', side_effect=command), \
                 patch.object(release.subprocess, 'run') as mutation:
             with self.assertRaises(ValueError):
@@ -56,6 +56,33 @@ class ReleaseGateTests(unittest.TestCase):
     def test_published_release_is_never_overwritten(self):
         with tempfile.TemporaryDirectory() as directory:
             self.run_guard(self.fixture(directory), releases=json.dumps([[{'tag_name': 'v0.3.2', 'draft': False}]]))
+
+    def test_draft_is_found_by_listing_and_published_only_after_remote_hash_checks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = self.fixture(directory)
+            draft = {'id': 123, 'tag_name': 'v0.3.2', 'draft': True}
+            assets = [{'name': p.name, 'size': p.stat().st_size, 'digest': 'sha256:' + release.sha(p)} for p in folder.iterdir()]
+            calls = []
+            def api(endpoint, *args):
+                calls.append((endpoint, args))
+                if '/assets?' in endpoint:
+                    return assets
+                if '/tags/' in endpoint:
+                    self.assertTrue(any('--method' in arguments for _, arguments in calls))
+                    return {'draft': False, 'prerelease': False, 'html_url': 'https://example.test/release'}
+                self.assertIn('draft=false', args)
+                self.assertIn('prerelease=false', args)
+                return {}
+            with patch.dict(os.environ, RELEASE_TAG='v0.3.2', GITHUB_REPOSITORY='example/repo', RELEASE_BUILD_RUN_ID=''), \
+                    patch.object(release, 'RELEASE', folder), patch.object(release, 'command', return_value='commit-a'), \
+                    patch.object(release, 'releases', return_value=[draft]), patch.object(release, 'api', side_effect=api), \
+                    patch.object(release.subprocess, 'run'):
+                release.publish()
+                calls.clear()
+                assets[0]['digest'] = 'sha256:tampered'
+                with self.assertRaisesRegex(ValueError, 'Remote asset SHA-256'):
+                    release.publish()
+                self.assertFalse(any('--method' in arguments for _, arguments in calls))
 
 
 if __name__ == '__main__':

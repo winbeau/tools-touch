@@ -1,0 +1,51 @@
+name: Resume verified release publication
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing unpublished version tag'
+        required: true
+        type: string
+      build_run_id:
+        description: 'Release workflow run with a successful Windows build job'
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_BUILD_RUN_ID: ${{ inputs.build_run_id }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      # Current publisher scripts can repair delivery without changing a tested tag.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: 0.9.17
+          python-version: 3.12.12
+      - name: Verify source tag and successful Windows build job
+        run: uv run --isolated --no-project python scripts/release.py recover
+      - name: Test publication guards
+        run: uv run --isolated --no-project python -m unittest discover -s scripts -p test_release.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: artifacts/release
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.build_run_id }}
+      - name: Verify assets and publish formal release
+        run: uv run --isolated --no-project python scripts/release.py publish
