@@ -129,7 +129,7 @@ def main():
                 if (runtime / name).read_bytes() != (target / name).read_bytes():
                     raise RuntimeError("Desktop test assembly differs from installed assembly: " + name)
             run([str(runtime / "ToolsTouch.Desktop.Tests.exe"), "--output", str(output / "desktop"),
-                 "--host", str(target / "agent-host/dist/index.js"), "--node", str(target / "node/node.exe")], workspace, 150)
+                 "--host", str(target / "agent-host/dist/index.js"), "--node", str(target / "node/node.exe")], workspace, 300)
             checks.append("installed Node/Pi and identical desktop assemblies pass native regression suite")
         finally:
             # Uninstall only if the registration still points at this exact temporary test directory.

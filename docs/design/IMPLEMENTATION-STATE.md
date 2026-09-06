@@ -1,6 +1,6 @@
 # 实施状态与续接记录
 
-最后更新：2026-09-05，P08-D 验收记录已完成。本文记录**新架构扩展**，既有功能验收仍见[历史验收](../ACCEPTANCE.md)。
+最后更新：2026-09-05，WPF 工作台界面优化及 23 组原生自动检查已完成，见[界面验证记录](UI-WORKBENCH-VALIDATION.md)。本文记录**新架构扩展**，既有功能验收仍见[历史验收](../ACCEPTANCE.md)。
 
 ## 1. 当前状态
 
@@ -550,3 +550,14 @@
 - 最终 EXE：104,207,700 字节，SHA-256 `4630bdcda6c9c71cacd100b872aaea6bf670a50b8ce585982b959faff71a22c6`；最终 ZIP：154,240,617 字节，SHA-256 `cb621648587e7935f53b7fb06bb59d3ee26635bf88cce7fb3ea3c4e29d2796fd`。
 - GitHub Actions [33987555038](https://github.com/winbeau/tools-touch/actions/runs/33987555038) 的 Node、Python、Core、Windows package／包哈希／原生桌面检查全部 success；可提交摘要 `docs/releases/v0.3.1-ci-check.json`。三份安装／桌面 JSON 证据已替换为最终 EXE 的实际结果。
 - 最终公开交付仍为未签名测试版；真实账号、来源和人工完整业务验收边界保持不变。v0.3.0 旧标签与资产保留，v0.3.1 草稿在最终文件校验后公开。
+
+## 7. WPF 工作台界面优化（2026-09-05）
+
+- 状态：Verified（实现、离线回归与 Windows 原生自动检查）。本轮只做界面与验证，未提交、推送、安装或发布；真实跨显示器 DPI 切换和人工长时间使用仍未验证。
+- 实际变更：MainWindow 改为紧凑外壳与七组左侧导航，保留稳定页面 ID 和所有原有命令；11 页拆为 UserControl。Theme／Workbench 资源统一浅色、青绿色、字号、间距、按钮层级、输入与表格状态；导航使用矢量图标。
+- 邮件工作区整理草稿列表、正文、附件与发送操作；补充空选择、加载、失败、Sent／Unknown 只读说明。加载时临时锁定编辑，保留原确认发送与 Unknown 不重试边界。
+- 记录器配置折叠、设置分为三个局部标签、导师目录的论文／评价／覆盖改用独立内容区域。所有主表保持有限布局高度与原生虚拟化，增加空数据和无结果指引。
+- 交互修复：申请与记录刷新保留选择、筛选、保存视图、未保存内容及原修订号；页面切换保留实例、详情来源与滚动位置。无数据库迁移、协议变动或包依赖更新。
+- 实际验证：WSL 调用 Windows 程序退出 0；Core 的 dotnet run 可执行回归退出 0；WPF self-contained publish 退出 0；最终原生测试退出 0，23 / 23 组通过，零绑定错误。54 / 54 个旧命令入口保留，当前 57 个。
+- 原生覆盖：11 页及局部标签；1040×720、1360×900、1600×1000 窗口；Tab 焦点、下拉框、校验、折叠操作滚动可达；空结果、未保存编辑、邮件加载、Unknown 锁定。初始原生 DPI 为 144；隔离 HWND 注入 WM_DPICHANGED 后实际报告 96→120→144→96，每种 DPI 均检查并截图 11 页。未修改系统显示设置；消息注入不等同于人工跨显示器拖动。
+- 证据：artifacts/ui-redesign/before 为旧界面，artifacts/ui-redesign/final 为最终结果，含 results.json、layout-results.json、dpi-results.json 和前后页面截图；命令与限制详见 [UI-WORKBENCH-VALIDATION.md](UI-WORKBENCH-VALIDATION.md)。所有数据及账号为隔离合成替身，没有发送真实邮件。保留未跟踪 pi/auth.json，未读取其内容。

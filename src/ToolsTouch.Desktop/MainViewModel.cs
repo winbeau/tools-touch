@@ -24,6 +24,16 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
     private readonly PublicWeb web;
     private CancellationTokenSource? gmailCancellation;
     private bool mailBusy;
+    public bool MailBusy
+    {
+        get => mailBusy;
+        private set
+        {
+            if (!Set(ref mailBusy, value)) return;
+            Raise(nameof(DraftLocked)); Raise(nameof(DraftEditorStatus));
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
     private readonly HttpClient http;
     private AgentBridge? bridge;
     private DiscoveryService? discovery;
@@ -51,7 +61,17 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
     public string Query { get; set; } = "帮我找做 World Model 的老师";
     public string ProfessorFilter { get; set; } = "";
     private int selectedPage;
-    public int SelectedPage { get => selectedPage; set => Set(ref selectedPage, value); }
+    public int SelectedPage
+    {
+        get => selectedPage;
+        set
+        {
+            if (!Enum.IsDefined(typeof(WorkspacePage), value) || selectedPage == value) return;
+            if (value == (int)WorkspacePage.ProfessorDetail && selectedPage is 1 or 2) professorReturnPage = selectedPage;
+            Set(ref selectedPage, value);
+            Raise(nameof(SelectedNavigationPage)); Raise(nameof(PageTitle)); Raise(nameof(PageDescription));
+        }
+    }
     private bool busy;
     public bool Busy { get => busy; private set { Set(ref busy, value); Raise(nameof(AccountControlsEnabled)); CommandManager.InvalidateRequerySuggested(); } }
     private Professor? selectedProfessor;
@@ -84,7 +104,7 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
         Recipient = SelectedDraft?.Recipient ?? ""; Subject = SelectedDraft?.Subject ?? "";
         Body = SelectedDraft?.Body ?? ""; Attachment = SelectedDraft?.CvPath ?? "";
         Raise(nameof(Recipient)); Raise(nameof(Subject)); Raise(nameof(Body)); Raise(nameof(Attachment));
-        Raise(nameof(DraftLocked));
+        Raise(nameof(DraftLocked)); Raise(nameof(DraftEditorStatus));
         CommandManager.InvalidateRequerySuggested();
     }
     public string Recipient { get; set; } = "";
@@ -161,7 +181,7 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
         GenerateDraftCommand = Command(() => StartTaskAsync("Draft"), () => CanUseModel && SelectedProfessor != null);
         ResumeCommand = Command(async () => { await EnsureAgentAsync(); await ExecuteTaskAsync(SelectedRun!.Id); }, () => CanUseModel && SelectedRun?.State is "Queued" or "Partial" or "Failed" or "Cancelled");
         CancelCommand = Command(CancelCurrentAsync, () => Busy || AuthBusy || mailBusy);
-        ViewProfessorCommand = Command(() => { LoadProfessor(); SelectedPage = 3; return Task.CompletedTask; }, () => SelectedProfessor != null);
+        ViewProfessorCommand = Command(() => { LoadProfessor(); SelectedPage = (int)WorkspacePage.ProfessorDetail; return Task.CompletedTask; }, () => SelectedProfessor != null);
         OpenHomepageCommand = Command(() => { if (SelectedProfessor?.Homepage is { } homepage) OpenUrl(homepage); return Task.CompletedTask; }, () => SelectedProfessor?.Homepage != null);
         ReadPaperCommand = Command(async () =>
         {
@@ -172,7 +192,7 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
             PaperText = $"{paper.Title}\n{reading.Coverage}\n{reading.SourceUrl}\n{reading.Note}\n\n" + string.Join("\n\n", reading.Pages.Select(page => $"页 {page.Page}\n{page.Text}"));
         }, () => SelectedPaper != null);
         OpenPaperSourceCommand = Command(() => { OpenUrl(SelectedPaper!.SourceUrl); return Task.CompletedTask; }, () => SelectedPaper != null);
-        OpenHistoryDraftCommand = Command(() => { SelectedDraft = outreach.Get(SelectedHistory!.Id); SelectedPage = 4; return Task.CompletedTask; }, () => SelectedHistory != null);
+        OpenHistoryDraftCommand = Command(() => { SelectedDraft = outreach.Get(SelectedHistory!.Id); SelectedPage = (int)WorkspacePage.Outreach; return Task.CompletedTask; }, () => SelectedHistory != null);
         ImportCvCommand = Command(ImportCvAsync, () => !Busy);
         ConfirmCvCommand = Command(() =>
         {
@@ -192,27 +212,27 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
         SendCommand = Command(SendAsync, () => CanEditDraft() && gmail.Account != null && !mailBusy);
         ReconcileCommand = Command(async () =>
         {
-            mailBusy = true;
+            MailBusy = true;
             try
             {
                 var id = SelectedDraft!.Id;
                 Status = await outreach.ReconcileAsync(id, gmail) ? "已在 Gmail 已发送邮件中核实。" : "尚未找到对应邮件，保留结果不确定状态，不会重发。";
                 SelectedDraft = outreach.Get(id); Refresh();
             }
-            finally { mailBusy = false; }
+            finally { MailBusy = false; }
         }, () => SelectedDraft?.State == "Unknown" && gmail.Account != null && !mailBusy);
         SyncRepliesCommand = Command(async () =>
         {
-            mailBusy = true;
+            MailBusy = true;
             try { var count = await outreach.SyncRepliesAsync(gmail); Refresh(); Status = $"同步完成，{count} 个会话有回复。"; }
-            finally { mailBusy = false; }
+            finally { MailBusy = false; }
         }, () => gmail.Account != null && !mailBusy);
         Refresh();
         var current = library.GetProfile();
         if (current != null) LoadProfile(current);
     }
 
-    private bool CanEditDraft() => SelectedDraft?.State is "Draft" or "Failed";
+    private bool CanEditDraft() => !mailBusy && SelectedDraft?.State is "Draft" or "Failed";
     private static string NewId() => Guid.NewGuid().ToString("N");
     private static void OpenUrl(string url)
     {
@@ -230,7 +250,7 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
         var run = discovery!.Create(kind, Query, kind == "Discover" ? null : SelectedProfessor!.Id, Settings.MaxToolCalls,
             checked(Settings.StageTimeoutSeconds * 1000), Settings.Provider, Settings.Model);
         await ExecuteTaskAsync(run.Id);
-        if (kind == "Draft") SelectedPage = 4;
+        if (kind == "Draft") SelectedPage = (int)WorkspacePage.Outreach;
     }
     private async Task ExecuteTaskAsync(string runId)
     {
@@ -314,7 +334,7 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
     }
     private async Task SendAsync()
     {
-        mailBusy = true; CommandManager.InvalidateRequerySuggested();
+        MailBusy = true;
         try
         {
             SaveDraft();
@@ -329,7 +349,7 @@ public sealed partial class MainViewModel : Observable, IAsyncDisposable
             }
             finally { SelectedDraft = outreach.Get(reviewed.Id); Refresh(); }
         }
-        finally { mailBusy = false; CommandManager.InvalidateRequerySuggested(); }
+        finally { MailBusy = false; }
     }
     private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> values)
     {

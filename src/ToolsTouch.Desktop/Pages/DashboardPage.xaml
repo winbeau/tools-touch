@@ -1,0 +1,56 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:ui="clr-namespace:ToolsTouch.Desktop.Controls" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="ToolsTouch.Desktop.Pages.DashboardPage" Focusable="False">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <TextBlock Grid.Row="1" Text="{Binding Summary}" Margin="0,14,0,20" Foreground="{StaticResource AccentBrush}" FontSize="18" />
+    <DataGrid Grid.Row="2" ItemsSource="{Binding Runs}" SelectedItem="{Binding SelectedRun}" ui:EmptyState.Message="还没有研究任务。前往「发现导师」开始检索。">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="任务" Binding="{Binding Kind}" Width="120">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Kind}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="状态" Binding="{Binding State, Converter={StaticResource DisplayLabel}}" Width="110">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding State}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="阶段" Binding="{Binding Stage, Converter={StaticResource DisplayLabel}}" Width="110">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Stage}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="错误 / 待处理原因" Binding="{Binding Error}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Error}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+    <WrapPanel Grid.Row="3" ui:WorkspaceLayout.Gap="8">
+      <Button Content="刷新" Command="{Binding RefreshCommand}" VerticalAlignment="Center" />
+      <Button Content="从检查点继续" Command="{Binding ResumeCommand}" VerticalAlignment="Center" />
+      <Button Content="取消当前任务" Command="{Binding CancelCommand}" Style="{StaticResource TextButton}" VerticalAlignment="Center" />
+    </WrapPanel>
+  </Grid>
+</UserControl>

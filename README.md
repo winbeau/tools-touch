@@ -6,9 +6,9 @@
 
 新对话编码从 [Luna 接手入口](docs/design/START-HERE.md) 开始，按 [实施状态](docs/design/IMPLEMENTATION-STATE.md) 续接；文件迁移、37 个工作包、核心协议与黄金验收样例已列入设计。
 
-Windows 安装版：[下载 v0.3.1 安装器](https://github.com/winbeau/tools-touch/releases/download/v0.3.1/ToolsTouch-Setup-0.3.1-win-x64.exe) · [发布说明](docs/releases/v0.3.1.md)。下载后双击安装，内置运行环境，无需管理员权限。卸载保留本地研究资料和账户数据；真实账号完整流程仍待验收。
+Windows 安装版：[下载 v0.3.2 安装器](https://github.com/winbeau/tools-touch/releases/download/v0.3.2/ToolsTouch-Setup-0.3.2-win-x64.exe) · [发布说明](docs/releases/v0.3.2.md)。下载后双击安装，内置运行环境，无需管理员权限。卸载保留本地研究资料和账户数据；真实账号完整流程仍待验收。
 
-已提供 11 个 WPF 页面、研究服务、Pi 登录适配和 Gmail 流程实现，并补充原生 Windows 桌面回归检查；真实账号端到端验收仍未完成。完整范围与未完成项见 [实施记录](docs/IMPLEMENTATION.md)。
+v0.3.2 将 11 个 WPF 页面整理为七组左侧导航，统一浅色工作台、邮件编辑区及表格工具栏，保留未保存编辑；23 组原生桌面自动检查通过。研究服务、Pi 登录适配和 Gmail 流程均保留；真实账号端到端验收仍未完成。完整范围与未完成项见 [实施记录](docs/IMPLEMENTATION.md)。
 
 Windows 使用、配置与打包步骤见 [WINDOWS.md](docs/WINDOWS.md)。便携包内含 self-contained .NET、Node、Pi 和 Python collector 生产依赖；原生自动检查不等于真实账号完整验收。逐项证据与缺口见 [ACCEPTANCE.md](docs/ACCEPTANCE.md)。
 

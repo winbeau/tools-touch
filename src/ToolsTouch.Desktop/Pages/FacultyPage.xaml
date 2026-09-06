@@ -1,0 +1,241 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:ui="clr-namespace:ToolsTouch.Desktop.Controls" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="ToolsTouch.Desktop.Pages.FacultyPage" Focusable="False">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="2*" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="3*" />
+    </Grid.RowDefinitions>
+    <WrapPanel ui:WorkspaceLayout.Gap="8">
+      <Button DockPanel.Dock="Right" Content="刷新导师与覆盖" Command="{Binding FacultyWorkspace.RefreshCommand}" VerticalAlignment="Center" />
+      <TextBox Text="{Binding FacultyWorkspace.Filter, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" Width="320" ToolTip="按姓名、机构、主页证据筛选" VerticalAlignment="Center" />
+    </WrapPanel>
+    <DataGrid Grid.Row="1" ItemsSource="{Binding FacultyWorkspace.Faculties}" SelectedItem="{Binding FacultyWorkspace.SelectedFaculty}" AutoGenerateColumns="False" Margin="0,12" ui:EmptyState.Message="没有匹配结果。调整筛选，或采集导师目录后刷新。">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="姓名" Binding="{Binding Name}" Width="180">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Name}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="机构" Binding="{Binding Institution}" Width="2*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Institution}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="任职数" Binding="{Binding AppointmentCount}" Width="70">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding AppointmentCount}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="公开邮箱" Binding="{Binding Email}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Email}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="证据更新时间" Binding="{Binding LastEvidenceAt}" Width="1.4*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding LastEvidenceAt}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+    <TextBlock Grid.Row="2" Text="{Binding FacultyWorkspace.Status}" Foreground="{StaticResource AccentBrush}" Margin="0,4" />
+    <Grid Grid.Row="3">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="1.15*" />
+      </Grid.ColumnDefinitions>
+      <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,8,16,0">
+        <StackPanel>
+          <TextBlock Text="导师详情" Style="{StaticResource SectionTitle}" />
+          <TextBlock Text="{Binding FacultyWorkspace.SelectedFaculty.Name, TargetNullValue=请选择导师, FallbackValue=请选择导师}" FontSize="18" Margin="0,8,0,0" />
+          <TextBlock Text="{Binding FacultyWorkspace.SelectedFaculty.Institution}" Foreground="{StaticResource AccentBrush}" />
+          <TextBlock Text="{Binding FacultyWorkspace.SelectedFaculty.Homepage}" TextWrapping="Wrap" Margin="0,4" />
+          <TextBlock Text="任职" FontWeight="SemiBold" Margin="0,12,0,4" />
+          <ItemsControl ItemsSource="{Binding FacultyWorkspace.Appointments}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <WrapPanel Margin="0,2" ui:WorkspaceLayout.Gap="8">
+                  <TextBlock Text="{Binding SchoolName}" />
+                  <TextBlock Text=" / " />
+                  <TextBlock Text="{Binding DepartmentName}" />
+                </WrapPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Text="证据声明" FontWeight="SemiBold" Margin="0,12,0,4" />
+          <ItemsControl ItemsSource="{Binding FacultyWorkspace.Evidence}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Margin="0,2">
+                  <TextBlock Text="{Binding ClaimType}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding QuotedText}" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding ConfidenceLabel}" Foreground="{StaticResource MutedBrush}" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+      <Grid Grid.Column="1" Margin="0,8,0,0">
+        <TabControl BorderThickness="0">
+          <TabItem Header="论文阅读">
+            <DataGrid ItemsSource="{Binding FacultyWorkspace.Papers}" AutoGenerateColumns="False" ui:EmptyState.Message="暂无记录。选择上方对象，或补充相关资料后刷新。">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="年份" Binding="{Binding Paper.Year}" Width="60">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding Paper.Year}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="标题" Binding="{Binding Paper.Title}" Width="*">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding Paper.Title}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="解析" Binding="{Binding Paper.ParseStatus}" Width="90">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding Paper.ParseStatus}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="阅读段" Binding="{Binding Reads.Count}" Width="70">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding Reads.Count}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+          </TabItem>
+          <TabItem Header="评价证据">
+            <DataGrid ItemsSource="{Binding FacultyWorkspace.Evaluations}" AutoGenerateColumns="False" ui:EmptyState.Message="暂无记录。选择上方对象，或补充相关资料后刷新。">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="来源" Binding="{Binding SourceType}" Width="120">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding SourceType}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="摘要" Binding="{Binding Summary}" Width="*">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding Summary}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="核验" Binding="{Binding VerificationState, Converter={StaticResource DisplayLabel}}" Width="100">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding VerificationState}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+          </TabItem>
+          <TabItem Header="采集覆盖">
+            <DataGrid ItemsSource="{Binding FacultyWorkspace.Coverage}" AutoGenerateColumns="False" ui:EmptyState.Message="暂无记录。选择上方对象，或补充相关资料后刷新。">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="学校" Binding="{Binding SchoolId}" Width="*">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding SchoolId}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="学院" Binding="{Binding DepartmentId}" Width="*">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding DepartmentId}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="状态" Binding="{Binding CoverageState, Converter={StaticResource DisplayLabel}}" Width="1.3*">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding CoverageState}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="页面" Binding="{Binding FetchedPageCount}" Width="60">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding FetchedPageCount}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="导师" Binding="{Binding ParsedEntryCount}" Width="60">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding ParsedEntryCount}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="失败原因" Binding="{Binding Error}" Width="1.3*">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding Error}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+          </TabItem>
+        </TabControl>
+      </Grid>
+    </Grid>
+  </Grid>
+</UserControl>

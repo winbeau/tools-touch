@@ -1,0 +1,244 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:ui="clr-namespace:ToolsTouch.Desktop.Controls" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="ToolsTouch.Desktop.Pages.ApplicationsPage" Focusable="False">
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="1.1*" MinWidth="280" />
+      <ColumnDefinition Width="1.8*" />
+    </Grid.ColumnDefinitions>
+    <DockPanel Margin="0,0,18,0">
+      <WrapPanel DockPanel.Dock="Top" ui:WorkspaceLayout.Gap="8">
+        <Button Content="刷新申请记录" Command="{Binding ApplicationWorkspace.RefreshCommand}" VerticalAlignment="Center" />
+        <TextBlock Text="邮件联系与官网申请分开记录" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="10,0,0,0" />
+      </WrapPanel>
+      <DataGrid ItemsSource="{Binding ApplicationWorkspace.Cases}" SelectedItem="{Binding ApplicationWorkspace.SelectedCase}" AutoGenerateColumns="False" Margin="0,12,0,0" ui:EmptyState.Message="还没有申请记录。请先采集或导入申请信息，再刷新。">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="学校／学院" Binding="{Binding SchoolName}" Width="1.4*">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="ToolTip" Value="{Binding SchoolName}" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+          <DataGridTextColumn Header="项目" Binding="{Binding ProgramName}" Width="1.2*">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="ToolTip" Value="{Binding ProgramName}" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+          <DataGridTextColumn Header="年份" Binding="{Binding Case.CycleYear}" Width="65">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="ToolTip" Value="{Binding Case.CycleYear}" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+          <DataGridTextColumn Header="阶段" Binding="{Binding Case.Stage, Converter={StaticResource DisplayLabel}}" Width="95">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="ToolTip" Value="{Binding Case.Stage}" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+          <DataGridTextColumn Header="联系" Binding="{Binding ContactState}" Width="85">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="ToolTip" Value="{Binding ContactState}" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+        </DataGrid.Columns>
+      </DataGrid>
+    </DockPanel>
+    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="0,0,0,12" ui:WorkspaceLayout.Gap="8" IsEnabled="{Binding ApplicationWorkspace.HasSelectedCase}">
+        <TextBlock Text="{Binding ApplicationWorkspace.SelectedCase.SchoolName, TargetNullValue=请选择申请记录, FallbackValue=请选择申请记录}" FontSize="18" Margin="0,8,0,2" />
+        <TextBlock Text="{Binding ApplicationWorkspace.SelectedCase.DepartmentName}" Foreground="{StaticResource AccentBrush}" />
+        <TextBlock Text="{Binding ApplicationWorkspace.SelectedCase.Case.Id, StringFormat='记录：{0}'}" FontSize="12" Foreground="{StaticResource MutedBrush}" />
+        <Grid Margin="0,14,0,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="100" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="100" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="申请阶段" VerticalAlignment="Center" />
+          <ComboBox Grid.Column="1" ItemsSource="{Binding ApplicationWorkspace.StageOptions}" SelectedItem="{Binding ApplicationWorkspace.Stage}" Margin="0,4,0,8">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Converter={StaticResource DisplayLabel}}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Grid.Column="2" Text="优先级 0-5" VerticalAlignment="Center" Margin="12,0,0,0" />
+          <TextBox Grid.Column="3" Text="{Binding ApplicationWorkspace.Priority, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" Margin="0,4,0,8" />
+        </Grid>
+        <TextBlock Text="报名链接" Margin="0,10,0,2" />
+        <TextBox Text="{Binding ApplicationWorkspace.ApplicationUrl, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" Margin="0,4,0,8" />
+        <TextBlock Text="下一步" Margin="0,8,0,2" />
+        <TextBox Text="{Binding ApplicationWorkspace.NextStep, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" Margin="0,4,0,8" />
+        <TextBlock Text="下一步时间（可空）" Margin="0,8,0,2" />
+        <TextBox Text="{Binding ApplicationWorkspace.NextStepDueAt, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" Margin="0,4,0,8" />
+        <TextBlock Text="备注" Margin="0,8,0,2" />
+        <TextBox Text="{Binding ApplicationWorkspace.OwnerNote, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="54" Margin="0,4,0,8" />
+        <WrapPanel ui:WorkspaceLayout.Gap="8">
+          <Button Content="保存申请字段" Command="{Binding ApplicationWorkspace.SaveDetailsCommand}" HorizontalAlignment="Left" Margin="0,0,8,8" Style="{StaticResource PrimaryButton}" />
+          <Button Content="确认阶段变更" Command="{Binding ApplicationWorkspace.ChangeStageCommand}" />
+        </WrapPanel>
+        <GroupBox Header="官网提交回执">
+          <Grid Margin="8">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Text="提交时间（空白则记为现在）" />
+            <TextBox Grid.Row="1" Text="{Binding ApplicationWorkspace.SubmissionDate, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" Margin="0,4,0,8" />
+            <TextBlock Grid.Row="2" Text="报名编号／回执号" Margin="0,6,0,0" />
+            <TextBox Grid.Row="3" Text="{Binding ApplicationWorkspace.SubmissionReference, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" Margin="0,4,0,8" />
+            <WrapPanel Grid.Row="4" Margin="0,6,0,0" ui:WorkspaceLayout.Gap="8">
+              <Button Content="记录官网已提交" Command="{Binding ApplicationWorkspace.RecordSubmissionCommand}" VerticalAlignment="Center" />
+              <TextBlock Text="不会自动修改阶段" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="10,0,0,0" />
+            </WrapPanel>
+          </Grid>
+        </GroupBox>
+        <GroupBox Header="材料清单" Margin="0,12,0,0">
+          <Grid Margin="8">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="110" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <DataGrid Grid.Row="0" ItemsSource="{Binding ApplicationWorkspace.Materials}" SelectedItem="{Binding ApplicationWorkspace.SelectedMaterial}" AutoGenerateColumns="False" ui:EmptyState.Message="暂无记录。选择上方对象，或补充相关资料后刷新。">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="材料" Binding="{Binding Name}" Width="*">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding Name}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridCheckBoxColumn Header="必需" Binding="{Binding IsRequired}" Width="55" />
+                <DataGridTextColumn Header="状态" Binding="{Binding State, Converter={StaticResource DisplayLabel}}" Width="110">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding State}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="备注" Binding="{Binding Note}" Width="1.3*">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding Note}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+            <WrapPanel Grid.Row="1" Margin="0,6,0,0" ui:WorkspaceLayout.Gap="8">
+              <TextBox Text="{Binding ApplicationWorkspace.MaterialName, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" Width="150" ToolTip="新增材料名称" VerticalAlignment="Center" />
+              <CheckBox Content="必需" IsChecked="{Binding ApplicationWorkspace.MaterialRequired}" VerticalAlignment="Center" />
+              <ComboBox ItemsSource="{Binding ApplicationWorkspace.MaterialStateOptions}" SelectedItem="{Binding ApplicationWorkspace.MaterialState}" Width="120" VerticalAlignment="Center">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding Converter={StaticResource DisplayLabel}}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <Button Content="添加材料" Command="{Binding ApplicationWorkspace.AddMaterialCommand}" VerticalAlignment="Center" />
+              <Button Content="保存选中材料" Command="{Binding ApplicationWorkspace.UpdateMaterialCommand}" VerticalAlignment="Center" />
+            </WrapPanel>
+            <TextBox Grid.Row="2" Text="{Binding ApplicationWorkspace.MaterialNote, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" ToolTip="材料备注" Margin="0,6,0,0" />
+          </Grid>
+        </GroupBox>
+        <GroupBox Header="提醒" Margin="0,12,0,0">
+          <Grid Margin="8">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="95" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <DataGrid Grid.Row="0" ItemsSource="{Binding ApplicationWorkspace.Reminders}" SelectedItem="{Binding ApplicationWorkspace.SelectedReminder}" AutoGenerateColumns="False" ui:EmptyState.Message="暂无记录。选择上方对象，或补充相关资料后刷新。">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="类型" Binding="{Binding Kind, Converter={StaticResource DisplayLabel}}" Width="110">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding Kind}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="时间" Binding="{Binding DueAt}" Width="1.2*">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding DueAt}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="依据" Binding="{Binding Basis}" Width="1.6*">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding Basis}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="状态" Binding="{Binding State, Converter={StaticResource DisplayLabel}}" Width="90">
+                  <DataGridTextColumn.ElementStyle>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                      <Setter Property="TextWrapping" Value="NoWrap" />
+                      <Setter Property="ToolTip" Value="{Binding State}" />
+                    </Style>
+                  </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+            <WrapPanel Grid.Row="1" Margin="0,6,0,0" ui:WorkspaceLayout.Gap="8">
+              <TextBox Text="{Binding ApplicationWorkspace.ReminderKind, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" Width="110" VerticalAlignment="Center" />
+              <TextBox Text="{Binding ApplicationWorkspace.ReminderDueAt, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" Width="145" ToolTip="提醒时间" VerticalAlignment="Center" />
+              <TextBox Text="{Binding ApplicationWorkspace.ReminderBasis, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" Width="190" ToolTip="提醒依据" VerticalAlignment="Center" />
+              <Button Content="添加提醒" Command="{Binding ApplicationWorkspace.AddReminderCommand}" VerticalAlignment="Center" />
+              <Button Content="完成选中提醒" Command="{Binding ApplicationWorkspace.CompleteReminderCommand}" VerticalAlignment="Center" />
+            </WrapPanel>
+          </Grid>
+        </GroupBox>
+        <TextBlock Text="阶段事件" FontWeight="SemiBold" Margin="0,14,0,4" />
+        <ListBox ItemsSource="{Binding ApplicationWorkspace.Events}" Height="105" ui:EmptyState.Message="暂无记录。选择上方对象，或补充相关资料后刷新。">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <WrapPanel ui:WorkspaceLayout.Gap="8">
+                <TextBlock Text="{Binding Type, Converter={StaticResource DisplayLabel}}" />
+                <TextBlock Text=" · " />
+                <TextBlock Text="{Binding NextStage}" />
+                <TextBlock Text="  " />
+                <TextBlock Text="{Binding Note}" />
+              </WrapPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock Text="{Binding ApplicationWorkspace.Status}" Style="{StaticResource Caption}" />
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

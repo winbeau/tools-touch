@@ -25,6 +25,7 @@ public sealed class RecordGridViewModel : Observable
     private readonly IViewService views;
     private readonly IImportPreviewService imports;
     private readonly Action<Exception> reportError;
+    private bool loading;
     private CollectionRecord? selectedCollection;
     private ViewDefinitionRecord? selectedView;
     private RecordGridRow? selectedRow;
@@ -54,22 +55,22 @@ public sealed class RecordGridViewModel : Observable
     public CollectionRecord? SelectedCollection
     {
         get => selectedCollection;
-        set { if (!Set(ref selectedCollection, value)) return; LoadCollection(); Raise(nameof(HasSelectedCollection)); CommandManager.InvalidateRequerySuggested(); }
+        set { if (!Set(ref selectedCollection, value)) return; if (!loading) LoadCollection(); Raise(nameof(HasSelectedCollection)); CommandManager.InvalidateRequerySuggested(); }
     }
     public ViewDefinitionRecord? SelectedView
     {
         get => selectedView;
-        set { if (!Set(ref selectedView, value)) return; LoadCollection(); Raise(nameof(HasSelectedView)); CommandManager.InvalidateRequerySuggested(); }
+        set { if (!Set(ref selectedView, value)) return; if (!loading) LoadCollection(); Raise(nameof(HasSelectedView)); CommandManager.InvalidateRequerySuggested(); }
     }
     public RecordGridRow? SelectedRow
     {
         get => selectedRow;
-        set { if (!Set(ref selectedRow, value)) return; LoadEditValue(); Raise(nameof(HasSelectedRow)); CommandManager.InvalidateRequerySuggested(); }
+        set { if (!Set(ref selectedRow, value)) return; if (!loading) LoadEditValue(); Raise(nameof(HasSelectedRow)); CommandManager.InvalidateRequerySuggested(); }
     }
     public FieldDefinitionRecord? SelectedField
     {
         get => selectedField;
-        set { if (!Set(ref selectedField, value)) return; LoadEditValue(); Raise(nameof(HasSelectedField)); CommandManager.InvalidateRequerySuggested(); }
+        set { if (!Set(ref selectedField, value)) return; if (!loading) LoadEditValue(); Raise(nameof(HasSelectedField)); CommandManager.InvalidateRequerySuggested(); }
     }
     public FieldDefinitionRecord? SelectedFilterField
     {
@@ -138,35 +139,46 @@ public sealed class RecordGridViewModel : Observable
     public void Refresh()
     {
         var selectedId = SelectedCollection?.Id;
-        var selectedViewId = SelectedView?.Id;
         var collections = catalog.Collections().Where(item => item.Kind == "Custom").ToArray();
-        Replace(CustomCollections, collections);
-        SelectedCollection = CustomCollections.FirstOrDefault(item => item.Id == selectedId) ?? CustomCollections.FirstOrDefault();
-        if (SelectedCollection is null) ClearCollection();
-        else if (selectedViewId is not null) SelectedView = Views.FirstOrDefault(item => item.Id == selectedViewId);
+        loading = true;
+        try
+        {
+            Replace(CustomCollections, collections);
+            SelectedCollection = CustomCollections.FirstOrDefault(item => item.Id == selectedId) ?? CustomCollections.FirstOrDefault();
+        }
+        finally { loading = false; }
+        LoadCollection(preserveEditor: SelectedCollection?.Id == selectedId);
         Status = $"已加载 {CustomCollections.Count} 张自定义表；系统集合由领域服务提供。";
     }
 
-    private void LoadCollection()
+    private void LoadCollection(bool preserveEditor = false)
     {
-        ClearCollection();
-        if (SelectedCollection is null) return;
-        foreach (var field in catalog.Fields(SelectedCollection.Id)) Fields.Add(field);
-        Replace(Views, views.List(SelectedCollection.Id));
-        if (SelectedView is not null && Views.All(view => view.Id != SelectedView.Id))
+        var oldRow = SelectedRow; var oldField = SelectedField; var oldEdit = EditValue;
+        var viewId = SelectedView?.Id; var filterId = SelectedFilterField?.Id; var sortId = SelectedSortField?.Id;
+        loading = true;
+        try
         {
-            selectedView = null;
-            Raise(nameof(SelectedView)); Raise(nameof(HasSelectedView));
+            ClearCollection();
+            if (SelectedCollection is null) { SelectedView = null; EditValue = ""; return; }
+            foreach (var field in catalog.Fields(SelectedCollection.Id))
+                Fields.Add(preserveEditor && field.Id == oldField?.Id ? oldField : field);
+            Replace(Views, views.List(SelectedCollection.Id));
+            SelectedView = Views.FirstOrDefault(view => view.Id == viewId);
+            SelectedFilterField = Fields.FirstOrDefault(field => field.Id == filterId) ?? Fields.FirstOrDefault();
+            SelectedSortField = Fields.FirstOrDefault(field => field.Id == sortId);
+            var request = new RecordQueryRequest(SelectedCollection.Id, SelectedView?.Id,
+                SelectedView is null ? CurrentFilterJson() : null, SelectedView is null ? CurrentSortJson() : null, Limit: 200);
+            var page = queries.Query(request);
+            foreach (var row in page.Items)
+                Rows.Add(preserveEditor && row.Record.Id == oldRow?.RecordId ? oldRow :
+                    new RecordGridRow(row.Record, string.Join(" · ", row.Values.Values.Where(value => value is not null).Select(FormatValue))));
+            SelectedRow = Rows.FirstOrDefault(row => row.RecordId == oldRow?.RecordId) ?? Rows.FirstOrDefault();
+            SelectedField = Fields.FirstOrDefault(field => field.Id == oldField?.Id) ?? Fields.FirstOrDefault();
+            Status = $"已加载 {Rows.Count} 条记录；数据版本 {page.DataRevision}。";
         }
-        SelectedFilterField = Fields.FirstOrDefault(field => field.Id == SelectedFilterField?.Id) ?? Fields.FirstOrDefault();
-        SelectedSortField = Fields.FirstOrDefault(field => field.Id == SelectedSortField?.Id);
-        var request = new RecordQueryRequest(SelectedCollection.Id, SelectedView?.Id,
-            SelectedView is null ? CurrentFilterJson() : null, SelectedView is null ? CurrentSortJson() : null, Limit: 200);
-        var page = queries.Query(request);
-        foreach (var row in page.Items)
-            Rows.Add(new RecordGridRow(row.Record, string.Join(" · ", row.Values.Values.Where(value => value is not null).Select(FormatValue))));
-        SelectedRow = Rows.FirstOrDefault(); SelectedField = Fields.FirstOrDefault(field => field.Id == SelectedField?.Id) ?? Fields.FirstOrDefault();
-        Status = $"已加载 {Rows.Count} 条记录；数据版本 {page.DataRevision}。";
+        finally { loading = false; }
+        if (preserveEditor && SelectedRow?.RecordId == oldRow?.RecordId && SelectedField?.Id == oldField?.Id) EditValue = oldEdit;
+        else LoadEditValue();
     }
 
     private void ClearCollection()

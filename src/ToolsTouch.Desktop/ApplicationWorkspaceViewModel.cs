@@ -11,6 +11,7 @@ public sealed class ApplicationWorkspaceViewModel : Observable
     private readonly Action<Exception> reportError;
     private readonly Func<string, bool> confirmStageChange;
     private ApplicationCaseSummary? selectedCase;
+    private bool refreshing;
     private ApplicationMaterialRecord? selectedMaterial;
     private ApplicationReminderRecord? selectedReminder;
     private string status = "尚未加载申请记录。";
@@ -47,7 +48,7 @@ public sealed class ApplicationWorkspaceViewModel : Observable
         set
         {
             if (!Set(ref selectedCase, value)) return;
-            LoadDetail();
+            if (!refreshing) LoadDetail();
             Raise(nameof(HasSelectedCase));
             CommandManager.InvalidateRequerySuggested();
         }
@@ -136,10 +137,16 @@ public sealed class ApplicationWorkspaceViewModel : Observable
 
     public void Refresh()
     {
-        var caseId = SelectedCase?.Case.Id;
-        Replace(Cases, cases.List());
-        SelectedCase = Cases.FirstOrDefault(item => item.Case.Id == caseId) ?? Cases.FirstOrDefault();
-        if (SelectedCase is null) ClearDetail();
+        var current = SelectedCase;
+        // Keep the loaded revision and editor during refresh; explicit saves still detect conflicts.
+        refreshing = true;
+        try
+        {
+            Replace(Cases, cases.List().Select(item => item.Case.Id == current?.Case.Id ? current : item));
+            SelectedCase = Cases.FirstOrDefault(item => item.Case.Id == current?.Case.Id) ?? Cases.FirstOrDefault();
+        }
+        finally { refreshing = false; }
+        if (SelectedCase?.Case.Id != current?.Case.Id || SelectedCase is null) LoadDetail();
         Status = $"已加载 {Cases.Count} 条申请记录。阶段变更和官网提交均需用户明确记录。";
     }
 

@@ -1,0 +1,213 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:ui="clr-namespace:ToolsTouch.Desktop.Controls" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="ToolsTouch.Desktop.Pages.RecommendationsPage" Focusable="False">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="2*" />
+      <RowDefinition Height="3*" />
+    </Grid.RowDefinitions>
+    <WrapPanel ui:WorkspaceLayout.Gap="8">
+      <Button DockPanel.Dock="Right" Content="刷新推荐运行" Command="{Binding RecommendationCenter.RefreshCommand}" />
+    </WrapPanel>
+    <TextBlock Grid.Row="1" Text="{Binding RecommendationCenter.Status}" Foreground="{StaticResource AccentBrush}" Margin="0,8,0,0" />
+    <StackPanel Grid.Row="2" Margin="0,8,0,12">
+      <WrapPanel Margin="0,8,0,0" ui:WorkspaceLayout.Gap="8">
+        <TextBlock Text="当前运行" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <ComboBox ItemsSource="{Binding RecommendationCenter.Runs}" SelectedItem="{Binding RecommendationCenter.SelectedRun}" DisplayMemberPath="Id" Width="240" VerticalAlignment="Center" />
+        <TextBlock Text="对比运行" VerticalAlignment="Center" Margin="18,0,8,0" />
+        <ComboBox ItemsSource="{Binding RecommendationCenter.Runs}" SelectedItem="{Binding RecommendationCenter.CompareRun}" DisplayMemberPath="Id" Width="240" VerticalAlignment="Center" />
+      </WrapPanel>
+      <Expander Header="运行范围、资料版本与证据覆盖">
+        <ScrollViewer MaxHeight="130" VerticalScrollBarVisibility="Auto">
+          <StackPanel>
+            <TextBlock Text="{Binding RecommendationCenter.RunSummary}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding RecommendationCenter.ScopeSummary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding RecommendationCenter.CoverageSummary}" Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" />
+          </StackPanel>
+        </ScrollViewer>
+      </Expander>
+    </StackPanel>
+    <DataGrid Grid.Row="3" ItemsSource="{Binding RecommendationCenter.Items}" AutoGenerateColumns="False" Margin="0,0,0,10" ui:EmptyState.Message="还没有推荐结果。完成资料确认与推荐任务后刷新。">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="对象" Binding="{Binding TargetId}" Width="1.2*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding TargetId}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="类型" Binding="{Binding TargetKind, Converter={StaticResource DisplayLabel}}" Width="1.1*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding TargetKind}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="资格" Binding="{Binding Eligibility, Converter={StaticResource DisplayLabel}}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Eligibility}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="排名" Binding="{Binding Rank}" Width="60">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Rank}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="已知分" Binding="{Binding Score}" Width="70">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Score}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="区间" Binding="{Binding ScoreRange}" Width="90">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding ScoreRange}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="覆盖" Binding="{Binding Coverage}" Width="90">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Coverage}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="分项" Binding="{Binding Components}" Width="2*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Components}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="证据" Binding="{Binding Evidence}" Width="1.4*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Evidence}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="缺失" Binding="{Binding MissingFacts}" Width="1.2*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding MissingFacts}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="理由" Binding="{Binding Reasons}" Width="1.4*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Reasons}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+    <GroupBox Grid.Row="4" Header="运行对比（当前 − 对比）">
+      <DataGrid ItemsSource="{Binding RecommendationCenter.Comparison}" AutoGenerateColumns="False" ui:EmptyState.Message="选择当前运行和对比运行，查看排名与分数变化。">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="对象" Binding="{Binding TargetId}" Width="1.2*">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="ToolTip" Value="{Binding TargetId}" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+          <DataGridTextColumn Header="当前资格" Binding="{Binding CurrentEligibility, Converter={StaticResource DisplayLabel}}" Width="*">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="ToolTip" Value="{Binding CurrentEligibility}" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+          <DataGridTextColumn Header="当前排名" Binding="{Binding CurrentRank}" Width="70">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="ToolTip" Value="{Binding CurrentRank}" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+          <DataGridTextColumn Header="当前分" Binding="{Binding CurrentScore}" Width="70">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="ToolTip" Value="{Binding CurrentScore}" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+          <DataGridTextColumn Header="对比资格" Binding="{Binding ComparedEligibility, Converter={StaticResource DisplayLabel}}" Width="*">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="ToolTip" Value="{Binding ComparedEligibility}" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+          <DataGridTextColumn Header="对比排名" Binding="{Binding ComparedRank}" Width="70">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="ToolTip" Value="{Binding ComparedRank}" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+          <DataGridTextColumn Header="排名变化" Binding="{Binding RankChange}" Width="70">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="ToolTip" Value="{Binding RankChange}" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+          <DataGridTextColumn Header="分数变化" Binding="{Binding ScoreChange}" Width="80">
+            <DataGridTextColumn.ElementStyle>
+              <Style TargetType="TextBlock">
+                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                <Setter Property="TextWrapping" Value="NoWrap" />
+                <Setter Property="ToolTip" Value="{Binding ScoreChange}" />
+              </Style>
+            </DataGridTextColumn.ElementStyle>
+          </DataGridTextColumn>
+        </DataGrid.Columns>
+      </DataGrid>
+    </GroupBox>
+  </Grid>
+</UserControl>

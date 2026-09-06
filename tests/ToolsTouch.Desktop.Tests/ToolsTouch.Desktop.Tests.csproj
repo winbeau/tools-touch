@@ -4,6 +4,7 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationManifest>../../src/ToolsTouch.Desktop/app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../../src/ToolsTouch.Desktop/ToolsTouch.Desktop.csproj" /></ItemGroup>
 </Project>

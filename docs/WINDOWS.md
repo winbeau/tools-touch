@@ -2,7 +2,7 @@
 
 ## 使用安装 EXE
 
-0.3 系列请使用 [v0.3.1 安装器](https://github.com/winbeau/tools-touch/releases/download/v0.3.1/ToolsTouch-Setup-0.3.1-win-x64.exe)。此版修复记录器页面的启动绑定错误，恢复随包 Google 桌面登录配置；Google 项目审核与真实账号验收状态仍见发布说明。
+0.3 系列请使用 [v0.3.2 安装器](https://github.com/winbeau/tools-touch/releases/download/v0.3.2/ToolsTouch-Setup-0.3.2-win-x64.exe)。此版统一 11 页浅色工作台、左侧导航、邮件与表格交互，保留随包 Google 桌面登录配置；Google 项目审核与真实账号验收状态仍见发布说明。
 
 从 [GitHub Releases](https://github.com/winbeau/tools-touch/releases) 下载 `ToolsTouch-Setup-*-win-x64.exe`，双击完成安装。默认位置为 `%LOCALAPPDATA%\Programs\ToolsTouch`，仅为当前用户安装，无需管理员权限；开始菜单入口自动创建，桌面快捷方式可选。
 
@@ -11,8 +11,8 @@
 安装器由 [Inno Setup](https://jrsoftware.org/isinfo.php) 构建。Windows 开发机安装 Inno Setup 6.3 或更新版本和 Python 3 后，可基于已校验的便携包重建：
 
 ```powershell
-python scripts/build-installer.py --package artifacts/ToolsTouch-win-x64-v0.3.1.zip --version 0.3.1 --output artifacts/release-v0.3.1
-python scripts/test-installer.py --installer artifacts/release-v0.3.1/ToolsTouch-Setup-0.3.1-win-x64.exe --test-exe artifacts/desktop-tests-v0.3.1-r2/ToolsTouch.Desktop.Tests.exe --output artifacts/installer-check
+python scripts/build-installer.py --package artifacts/ToolsTouch-win-x64-v0.3.2.zip --version 0.3.2 --output artifacts/release-v0.3.2
+python scripts/test-installer.py --installer artifacts/release-v0.3.2/ToolsTouch-Setup-0.3.2-win-x64.exe --test-exe artifacts/desktop-tests-v0.3.2/ToolsTouch.Desktop.Tests.exe --output artifacts/installer-check
 ```
 
 `ISCC_EXE` 可指定编译器位置。构建器只提取并打包便携包清单内通过 SHA-256 校验的文件；输出安装 EXE、`SHA256SUMS.txt` 与构建元数据，已有输出目录不会覆盖。安装测试要求当前 Windows 用户尚未安装 Tools Touch，会在临时目录执行安装、逐文件校验、重复安装修复、桌面回归及卸载，不使用真实账号或发送邮件。
@@ -89,22 +89,22 @@ uv run --all-packages --locked python scripts/package.py
 
 脚本先运行测试，再交叉发布 Windows x64，使用锁定的 uv 依赖安装 collector 的纯 Python Windows 生产依赖，下载并校验官方 Node 与 Python embeddable 压缩包的 SHA-256。脚本不发布、不签名、不调用真实模型、不发送真实邮件；已有输出不会被覆盖，可用 `--output` 指定新目录。
 
-可用 `uv run --all-packages --locked python scripts/verify-package.py artifacts/ToolsTouch-win-x64-v0.3.1` 验证生成目录的全部文件哈希。校验只证明产物与构建清单一致，不是代码签名或 Windows 运行验证。
+可用 `uv run --all-packages --locked python scripts/verify-package.py artifacts/ToolsTouch-win-x64-v0.3.2` 验证生成目录的全部文件哈希。校验只证明产物与构建清单一致，不是代码签名或 Windows 运行验证。
 
 ## 可重复的 Windows 原生检查
 
 在 Windows 上安装 .NET SDK 10.0.400 和 Python 3 后运行：
 
 ```powershell
-python scripts/test-windows.py --package artifacts/ToolsTouch-win-x64-v0.3.1 --output artifacts/windows-check
+python scripts/test-windows.py --package artifacts/ToolsTouch-win-x64-v0.3.2 --output artifacts/windows-check
 ```
 
 脚本发布桌面测试程序，将其与包内 Node / AgentHost 复制到 Windows 临时目录，然后在 STA 界面线程上加载实际 MainWindow 与 MainViewModel。每次输出目录必须是新目录，内含 `results.json`、11 个页面及三个详情子页 PNG。整个过程只使用隔离的模拟 Google 授权和合成模型密钥，不打开真实登录浏览器、不读取正式应用资料、不发送真实邮件，结束后清理临时运行目录。窗口在屏幕外渲染，因此截图是实际 WPF 渲染结果，不是人工操作录像。
 
-如果使用 WSL 交叉构建，可先执行以下命令，再从 Windows 调用上面的脚本并追加 `--test-exe artifacts/desktop-tests-v0.3.1-r2/ToolsTouch.Desktop.Tests.exe`，Windows 侧无需另外安装 SDK：
+如果使用 WSL 交叉构建，可先执行以下命令，再从 Windows 调用上面的脚本并追加 `--test-exe artifacts/desktop-tests-v0.3.2/ToolsTouch.Desktop.Tests.exe`，Windows 侧无需另外安装 SDK：
 
 ```sh
-dotnet publish tests/ToolsTouch.Desktop.Tests -c Release -r win-x64 --self-contained true -o artifacts/desktop-tests-v0.3.1-r2
+dotnet publish tests/ToolsTouch.Desktop.Tests -c Release -r win-x64 --self-contained true -o artifacts/desktop-tests-v0.3.2
 ```
 
 检查范围包括合成凭据加密落盘、另一个 Windows 进程解密、损坏检测与删除；页面切换、草稿保存与未保存内容保留、空选择清理、已发送锁定；实际包内 Pi 的匿名状态握手；以及模拟应用退出时界面线程等待清理的死锁回归。不会证明 Google 刷新凭据、真实模型工具调用或发送成功。

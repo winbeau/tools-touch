@@ -3,7 +3,8 @@
     <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF><EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>ToolsTouch</AssemblyName>
-    <Version>0.3.1</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>0.3.2</Version>
     <!-- This explicit DPAPI reference is also supplied by newer Windows desktop SDKs. -->
     <NoWarn>$(NoWarn);NU1510</NoWarn>
   </PropertyGroup>

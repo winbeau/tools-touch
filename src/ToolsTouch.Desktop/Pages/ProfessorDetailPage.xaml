@@ -1,0 +1,111 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:ui="clr-namespace:ToolsTouch.Desktop.Controls" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="ToolsTouch.Desktop.Pages.ProfessorDetailPage" Focusable="False">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+    <StackPanel>
+      <Button Content="返回导师列表" HorizontalAlignment="Left" Style="{StaticResource TextButton}" Command="{Binding BackToProfessorsCommand}" Margin="0,0,0,8" />
+      <TextBlock Text="{Binding SelectedProfessor.Name, TargetNullValue=请先选择导师, FallbackValue=请先选择导师}" FontSize="25" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding SelectedProfessor.Institution}" Foreground="{StaticResource AccentBrush}" Margin="0,6" />
+    </StackPanel>
+    <WrapPanel Grid.Row="1" ui:WorkspaceLayout.Gap="8">
+      <Button Content="打开主页" Command="{Binding OpenHomepageCommand}" Style="{StaticResource TextButton}" VerticalAlignment="Center" />
+      <Button Content="深入分析" Command="{Binding AnalyzeCommand}" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" />
+      <Button Content="生成新草稿" Command="{Binding GenerateDraftCommand}" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" />
+    </WrapPanel>
+    <TabControl Grid.Row="2" BorderThickness="0">
+      <TabItem Header="研究与匹配">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="12">
+            <TextBox Text="{Binding Analysis, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0" Margin="0,4,0,8" />
+            <TextBlock Text="导师来源" FontWeight="SemiBold" />
+            <ItemsControl ItemsSource="{Binding SelectedProfessor.Evidence}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel Margin="0,10">
+                    <TextBlock Text="{Binding Claim}" />
+                    <TextBlock Text="{Binding Url}" Foreground="{StaticResource AccentBrush}" />
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Header="论文阅读">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="2*" />
+          </Grid.ColumnDefinitions>
+          <DockPanel Margin="0,12,12,0">
+            <StackPanel DockPanel.Dock="Bottom">
+              <TextBlock Text="起始页码（每次最多 10 页）" />
+              <TextBox Text="{Binding PaperStartPage, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" Margin="0,4,0,8" />
+              <Button Content="阅读所选页 / 摘要" Command="{Binding ReadPaperCommand}" />
+              <Button Content="打开论文来源" Command="{Binding OpenPaperSourceCommand}" Style="{StaticResource TextButton}" />
+            </StackPanel>
+            <ListBox ItemsSource="{Binding Papers}" SelectedItem="{Binding SelectedPaper}" DisplayMemberPath="Title" ui:EmptyState.Message="尚无论文。先选择导师并完成研究，再阅读论文。" />
+          </DockPanel>
+          <TextBox Grid.Column="1" Text="{Binding PaperText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" Margin="0,4,0,8" />
+        </Grid>
+      </TabItem>
+      <TabItem Header="投递历史">
+        <DockPanel Margin="8">
+          <Button DockPanel.Dock="Bottom" Content="打开选中邮件" Command="{Binding OpenHistoryDraftCommand}" HorizontalAlignment="Left" Style="{StaticResource TextButton}" />
+          <DataGrid ItemsSource="{Binding ProfessorHistory}" SelectedItem="{Binding SelectedHistory}" ui:EmptyState.Message="尚无投递记录。可为这位导师生成草稿。">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="版本" Binding="{Binding Version}" Width="65">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                    <Setter Property="TextWrapping" Value="NoWrap" />
+                    <Setter Property="ToolTip" Value="{Binding Version}" />
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+              <DataGridTextColumn Header="主题" Binding="{Binding Subject}" Width="*">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                    <Setter Property="TextWrapping" Value="NoWrap" />
+                    <Setter Property="ToolTip" Value="{Binding Subject}" />
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+              <DataGridTextColumn Header="发送状态" Binding="{Binding State, Converter={StaticResource DisplayLabel}}" Width="110">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                    <Setter Property="TextWrapping" Value="NoWrap" />
+                    <Setter Property="ToolTip" Value="{Binding State}" />
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+              <DataGridTextColumn Header="回复状态" Binding="{Binding ReplyState, Converter={StaticResource DisplayLabel}}" Width="110">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                    <Setter Property="TextWrapping" Value="NoWrap" />
+                    <Setter Property="ToolTip" Value="{Binding ReplyState}" />
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+              <DataGridTextColumn Header="创建时间" Binding="{Binding CreatedAt}" Width="210">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                    <Setter Property="TextWrapping" Value="NoWrap" />
+                    <Setter Property="ToolTip" Value="{Binding CreatedAt}" />
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+    </TabControl>
+  </Grid>
+</UserControl>

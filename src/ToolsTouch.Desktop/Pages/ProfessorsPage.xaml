@@ -1,0 +1,46 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:ui="clr-namespace:ToolsTouch.Desktop.Controls" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="ToolsTouch.Desktop.Pages.ProfessorsPage" Focusable="False">
+  <DockPanel>
+    <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <TextBox Text="{Binding ProfessorFilter, UpdateSourceTrigger=PropertyChanged}" ToolTip="按姓名、机构或证据关键词搜索" Margin="0,0,12,0" />
+      <WrapPanel Grid.Column="1" ui:WorkspaceLayout.Gap="8">
+        <Button Content="筛选 / 刷新" Command="{Binding RefreshCommand}" VerticalAlignment="Center" />
+        <Button Content="查看详情" Style="{StaticResource PrimaryButton}" Command="{Binding ViewProfessorCommand}" VerticalAlignment="Center" />
+      </WrapPanel>
+    </Grid>
+    <DataGrid ItemsSource="{Binding Professors}" SelectedItem="{Binding SelectedProfessor}" ui:EmptyState.Message="没有匹配的导师。调整筛选条件，或前往「发现导师」检索。">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="姓名" Binding="{Binding Name}" Width="180">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Name}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="机构" Binding="{Binding Institution}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Institution}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="公开邮箱" Binding="{Binding Email}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Email}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

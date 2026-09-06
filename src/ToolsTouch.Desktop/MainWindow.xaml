@@ -1,275 +1,154 @@
-<Window x:Class="ToolsTouch.Desktop.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Tools Touch · Research &amp; Outreach" Width="1280" Height="850" MinWidth="1000" MinHeight="680" Background="#F5F7F9" FontFamily="Segoe UI" FontSize="14">
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:pages="clr-namespace:ToolsTouch.Desktop.Pages" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="ToolsTouch.Desktop.MainWindow" Title="Tools Touch · 研究与申请工作台" Width="1360" Height="900" MinWidth="1040" MinHeight="720" Background="{StaticResource CanvasBrush}" Foreground="{StaticResource InkBrush}" FontFamily="Segoe UI, Microsoft YaHei UI" FontSize="{StaticResource BodySize}" UseLayoutRounding="True" SnapsToDevicePixels="True">
   <Window.InputBindings>
-    <KeyBinding Key="F5" Command="{Binding RefreshCommand}"/>
+    <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
+    <KeyBinding Key="Left" Modifiers="Alt" Command="{Binding BackToProfessorsCommand}" />
   </Window.InputBindings>
-  <Window.Resources><BooleanToVisibilityConverter x:Key="BoolVisibility"/></Window.Resources>
-  <DockPanel Margin="24">
-    <Border DockPanel.Dock="Top" Padding="0,0,0,20"><StackPanel><TextBlock Text="TOOLS TOUCH" Foreground="#167D8D" FontWeight="Bold" FontSize="13"/><TextBlock Text="Research, with a personal direction." Foreground="#182B3A" FontSize="27" FontWeight="SemiBold" Margin="0,4,0,0"/></StackPanel></Border>
-    <Border DockPanel.Dock="Top" Background="#E6EEF3" Padding="10" Margin="0,0,0,12">
-      <DockPanel><Button DockPanel.Dock="Right" Content="重试加载" Command="{Binding ConnectAgentCommand}" Margin="8,0,0,0" Padding="10,4"/>
-        <StackPanel><TextBlock Text="{Binding ComponentStatus}"/><ProgressBar Height="5" Margin="0,6,0,0" IsIndeterminate="True" Visibility="{Binding ComponentLoading, Converter={StaticResource BoolVisibility}}"/></StackPanel>
-      </DockPanel>
-    </Border>
-    <Border DockPanel.Dock="Bottom" Background="#E6EEF3" Padding="12" Margin="0,12,0,0"><TextBlock Text="{Binding Status}"/></Border>
-    <Grid>
-      <Border x:Name="SignInPanel" Background="White" CornerRadius="12" Padding="40" Visibility="{Binding NeedsSignIn, Converter={StaticResource BoolVisibility}}">
-        <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel MaxWidth="620" HorizontalAlignment="Center" VerticalAlignment="Center">
-          <TextBlock Text="使用 Gmail 登录 Tools Touch" FontSize="28" FontWeight="SemiBold" Foreground="#182B3A" Margin="0,0,0,16"/>
-          <TextBlock Text="首次使用请先登录。这个 Gmail 既是你的应用账号，也是之后投递邮件的发件邮箱。" FontSize="16" Margin="0,0,0,20"/>
-          <Button Content="使用 Google 登录" Command="{Binding ConnectGmailCommand}" Background="#167D8D" Foreground="White" FontSize="16" Padding="24,14" HorizontalAlignment="Left"/>
-          <CheckBox Content="自动打开默认浏览器" IsChecked="{Binding AutoOpenLoginBrowser}" Margin="0,8"/>
-          <Button Content="复制 Gmail 登录链接" Command="{Binding CopyGmailLoginUrlCommand}" HorizontalAlignment="Left"/>
-          <Button Content="打开诊断日志" Command="{Binding OpenLogsCommand}" HorizontalAlignment="Left"/>
-          <Button Content="取消登录" Command="{Binding CancelGmailCommand}" HorizontalAlignment="Left"/>
-          <TextBlock Text="{Binding GmailProgress}" Foreground="#167D8D" Margin="0,8,0,16"/>
-          <TextBlock Text="授权完成后自动进入工作台，下次打开保留登录。发送邮件前仍需你逐封确认。" Foreground="#526774" Margin="0,0,0,20"/>
-          <Expander Header="开发者连接配置" Visibility="{Binding ShowGoogleSetup, Converter={StaticResource BoolVisibility}}">
-            <StackPanel Margin="0,12"><TextBlock Text="{Binding GmailClientName}"/>
-              <TextBlock Text="源码或开发版本可在此导入 Google 桌面 OAuth 客户端配置。官方安装版由发布者预置，普通用户无需配置。" Margin="0,8"/>
-              <Button Content="导入 Google 客户端配置" Command="{Binding ImportGoogleClientCommand}" HorizontalAlignment="Left"/>
-              <Button Content="打开诊断日志" Command="{Binding OpenLogsCommand}" HorizontalAlignment="Left"/>
-            </StackPanel>
-          </Expander>
-        </StackPanel></ScrollViewer>
-      </Border>
-      <DockPanel x:Name="WorkspacePanel" Visibility="{Binding IsSignedIn, Converter={StaticResource BoolVisibility}}">
-        <TextBlock DockPanel.Dock="Top" Text="{Binding SignedInAccount, StringFormat='当前登录 / 投递邮箱：{0}'}" Foreground="#167D8D" Margin="0,0,0,12"/>
-    <TabControl x:Name="WorkspaceTabs" SelectedIndex="{Binding SelectedPage}" Background="White" BorderThickness="0" Padding="20">
-      <TabControl.Resources><Style TargetType="TabItem"><Setter Property="Padding" Value="16,12"/></Style></TabControl.Resources>
-      <TabItem Header="Dashboard">
-        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-          <TextBlock Text="工作概览" FontSize="24" FontWeight="SemiBold"/>
-          <TextBlock Grid.Row="1" Text="{Binding Summary}" Margin="0,14,0,20" Foreground="#167D8D" FontSize="18"/>
-          <DataGrid Grid.Row="2" ItemsSource="{Binding Runs}" SelectedItem="{Binding SelectedRun}"><DataGrid.Columns>
-            <DataGridTextColumn Header="任务" Binding="{Binding Kind}" Width="120"/><DataGridTextColumn Header="状态" Binding="{Binding State}" Width="110"/><DataGridTextColumn Header="阶段" Binding="{Binding Stage}" Width="110"/><DataGridTextColumn Header="错误 / 待处理原因" Binding="{Binding Error}" Width="*"/>
-          </DataGrid.Columns></DataGrid>
-          <StackPanel Grid.Row="3" Orientation="Horizontal"><Button Content="刷新" Command="{Binding RefreshCommand}"/><Button Content="从检查点继续" Command="{Binding ResumeCommand}"/><Button Content="取消当前任务" Command="{Binding CancelCommand}"/></StackPanel>
-        </Grid>
-      </TabItem>
-      <TabItem Header="Discover">
-        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-          <TextBlock Text="从一个研究方向开始" FontSize="24" FontWeight="SemiBold"/>
-          <TextBox Grid.Row="1" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" Margin="0,16,0,8"/>
-          <StackPanel Grid.Row="2" Orientation="Horizontal"><Button Content="发现导师" Command="{Binding DiscoverCommand}"/><Button Content="取消" Command="{Binding CancelCommand}"/><TextBlock Text="先查本地，再核实公开来源；没有 CV 也可以发现导师。" VerticalAlignment="Center" Margin="8,0"/></StackPanel>
-          <Grid Grid.Row="3"><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-            <DataGrid ItemsSource="{Binding Professors}" SelectedItem="{Binding SelectedProfessor}"><DataGrid.Columns><DataGridTextColumn Header="导师" Binding="{Binding Name}" Width="*"/><DataGridTextColumn Header="机构" Binding="{Binding Institution}" Width="*"/></DataGrid.Columns></DataGrid>
-            <DockPanel Grid.Column="1" Margin="16,0,0,0"><Button DockPanel.Dock="Bottom" Content="查看选中导师" Command="{Binding ViewProfessorCommand}"/><TextBlock DockPanel.Dock="Top" Text="执行进度" FontWeight="SemiBold" Margin="0,0,0,8"/><ListBox ItemsSource="{Binding Activity}" BorderThickness="0"/></DockPanel>
-          </Grid>
-        </Grid>
-      </TabItem>
-      <TabItem Header="Professors">
-        <DockPanel><TextBlock DockPanel.Dock="Top" Text="本地导师库" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,12"/>
-          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal"><TextBox Text="{Binding ProfessorFilter}" Width="340" ToolTip="按姓名、机构或证据关键词搜索"/><Button Content="筛选 / 刷新" Command="{Binding RefreshCommand}"/><Button Content="查看详情" Command="{Binding ViewProfessorCommand}"/></StackPanel>
-          <DataGrid ItemsSource="{Binding Professors}" SelectedItem="{Binding SelectedProfessor}"><DataGrid.Columns><DataGridTextColumn Header="姓名" Binding="{Binding Name}" Width="180"/><DataGridTextColumn Header="机构" Binding="{Binding Institution}" Width="*"/><DataGridTextColumn Header="公开邮箱" Binding="{Binding Email}" Width="*"/></DataGrid.Columns></DataGrid>
+  <Window.Resources>
+    <CollectionViewSource x:Key="NavigationGroups" Source="{Binding Navigation}">
+      <CollectionViewSource.GroupDescriptions>
+        <PropertyGroupDescription PropertyName="Group" />
+      </CollectionViewSource.GroupDescriptions>
+    </CollectionViewSource>
+  </Window.Resources>
+  <AdornerDecorator>
+    <Grid Background="{StaticResource CanvasBrush}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="52" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="24,0">
+        <DockPanel>
+          <TextBlock Text="TOOLS TOUCH" FontSize="16" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" />
+          <TextBlock Text="研究与申请工作台" Style="{StaticResource Caption}" Margin="16,0,0,0" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding SignedInAccount}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
         </DockPanel>
-      </TabItem>
-      <TabItem Header="Professor Detail">
-        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-          <StackPanel><TextBlock Text="{Binding SelectedProfessor.Name, TargetNullValue=请先选择导师}" FontSize="25" FontWeight="SemiBold"/><TextBlock Text="{Binding SelectedProfessor.Institution}" Foreground="#167D8D" Margin="0,6"/></StackPanel>
-          <StackPanel Grid.Row="1" Orientation="Horizontal"><Button Content="打开主页" Command="{Binding OpenHomepageCommand}"/><Button Content="深入分析" Command="{Binding AnalyzeCommand}"/><Button Content="生成新草稿" Command="{Binding GenerateDraftCommand}"/></StackPanel>
-          <TabControl Grid.Row="2" BorderThickness="0">
-            <TabItem Header="研究与匹配"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="12"><TextBox Text="{Binding Analysis, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0"/><TextBlock Text="导师来源" FontWeight="SemiBold"/><ItemsControl ItemsSource="{Binding SelectedProfessor.Evidence}"><ItemsControl.ItemTemplate><DataTemplate><StackPanel Margin="0,10"><TextBlock Text="{Binding Claim}"/><TextBlock Text="{Binding Url}" Foreground="#167D8D"/></StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></ScrollViewer></TabItem>
-            <TabItem Header="论文阅读"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions><DockPanel Margin="0,12,12,0"><StackPanel DockPanel.Dock="Bottom"><TextBlock Text="起始页码（每次最多 10 页）"/><TextBox Text="{Binding PaperStartPage}"/><Button Content="阅读所选页 / 摘要" Command="{Binding ReadPaperCommand}"/><Button Content="打开论文来源" Command="{Binding OpenPaperSourceCommand}"/></StackPanel><ListBox ItemsSource="{Binding Papers}" SelectedItem="{Binding SelectedPaper}" DisplayMemberPath="Title"/></DockPanel><TextBox Grid.Column="1" Text="{Binding PaperText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True"/></Grid></TabItem>
-            <TabItem Header="投递历史"><DockPanel Margin="8"><Button DockPanel.Dock="Bottom" Content="打开选中邮件" Command="{Binding OpenHistoryDraftCommand}" HorizontalAlignment="Left"/><DataGrid ItemsSource="{Binding ProfessorHistory}" SelectedItem="{Binding SelectedHistory}"><DataGrid.Columns><DataGridTextColumn Header="版本" Binding="{Binding Version}" Width="65"/><DataGridTextColumn Header="主题" Binding="{Binding Subject}" Width="*"/><DataGridTextColumn Header="发送状态" Binding="{Binding State}" Width="110"/><DataGridTextColumn Header="回复状态" Binding="{Binding ReplyState}" Width="110"/><DataGridTextColumn Header="创建时间" Binding="{Binding CreatedAt}" Width="210"/></DataGrid.Columns></DataGrid></DockPanel></TabItem>
-          </TabControl>
-        </Grid>
-      </TabItem>
-      <TabItem Header="Outreach">
-        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="280"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-          <ListBox ItemsSource="{Binding Drafts}" SelectedItem="{Binding SelectedDraft}" Margin="0,0,20,0" BorderThickness="0"><ListBox.ItemTemplate><DataTemplate><StackPanel Margin="4,10"><TextBlock Text="{Binding Subject}" FontWeight="SemiBold"/><TextBlock Text="{Binding Recipient}" FontSize="12"/><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding State}" Foreground="#167D8D"/><TextBlock Text="{Binding Version, StringFormat=' · 版本 {0}'}"/></StackPanel></StackPanel></DataTemplate></ListBox.ItemTemplate></ListBox>
-          <Grid Grid.Column="1"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-            <TextBlock Text="邮件草稿" FontSize="24" FontWeight="SemiBold"/><TextBlock Grid.Row="1" Text="收件人" Margin="0,12,0,0"/><TextBox Grid.Row="2" Text="{Binding Recipient, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding DraftLocked}"/><TextBox Grid.Row="3" Text="{Binding Subject, UpdateSourceTrigger=PropertyChanged}" ToolTip="邮件主题" IsReadOnly="{Binding DraftLocked}"/>
-            <TextBox Grid.Row="4" Text="{Binding Body, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding DraftLocked}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top"/>
-            <StackPanel Grid.Row="5"><TextBlock Text="{Binding Attachment, StringFormat='CV 附件：{0}'}"/><StackPanel Orientation="Horizontal"><Button Content="使用已确认 CV" Command="{Binding AttachCvCommand}"/><Button Content="移除附件" Command="{Binding RemoveAttachmentCommand}"/></StackPanel></StackPanel>
-            <StackPanel Grid.Row="6" Orientation="Horizontal"><Button Content="保存修改" Command="{Binding SaveDraftCommand}"/><Button Content="Send · 确认发送" Command="{Binding SendCommand}"/><Button Content="核对发送结果" Command="{Binding ReconcileCommand}"/><Button Content="同步回复" Command="{Binding SyncRepliesCommand}"/></StackPanel>
-          </Grid>
-        </Grid>
-      </TabItem>
-      <TabItem Header="Applications">
-        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="390"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-          <DockPanel Margin="0,0,18,0">
-            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal"><Button Content="刷新申请记录" Command="{Binding ApplicationWorkspace.RefreshCommand}"/><TextBlock Text="邮件联系与官网申请分开记录" Foreground="#526774" VerticalAlignment="Center" Margin="10,0,0,0"/></StackPanel>
-            <DataGrid ItemsSource="{Binding ApplicationWorkspace.Cases}" SelectedItem="{Binding ApplicationWorkspace.SelectedCase}" AutoGenerateColumns="False" Margin="0,12,0,0">
-              <DataGrid.Columns><DataGridTextColumn Header="学校／学院" Binding="{Binding SchoolName}" Width="1.4*"/><DataGridTextColumn Header="项目" Binding="{Binding ProgramName}" Width="1.2*"/><DataGridTextColumn Header="年份" Binding="{Binding Case.CycleYear}" Width="65"/><DataGridTextColumn Header="阶段" Binding="{Binding Case.Stage}" Width="95"/><DataGridTextColumn Header="联系" Binding="{Binding ContactState}" Width="85"/></DataGrid.Columns>
-            </DataGrid>
-          </DockPanel>
-          <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,0,0,12">
-            <TextBlock Text="申请记录详情" FontSize="24" FontWeight="SemiBold"/><TextBlock Text="{Binding ApplicationWorkspace.SelectedCase.SchoolName, TargetNullValue=请选择申请记录}" FontSize="18" Margin="0,8,0,2"/><TextBlock Text="{Binding ApplicationWorkspace.SelectedCase.DepartmentName}" Foreground="#167D8D"/><TextBlock Text="{Binding ApplicationWorkspace.SelectedCase.Case.Id, StringFormat='记录：{0}'}" FontSize="12" Foreground="#526774"/>
-            <Grid Margin="0,14,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="申请阶段" VerticalAlignment="Center"/><ComboBox Grid.Column="1" ItemsSource="{Binding ApplicationWorkspace.StageOptions}" SelectedItem="{Binding ApplicationWorkspace.Stage}"/><TextBlock Grid.Column="2" Text="优先级 0-5" VerticalAlignment="Center" Margin="12,0,0,0"/><TextBox Grid.Column="3" Text="{Binding ApplicationWorkspace.Priority}"/></Grid>
-            <TextBlock Text="报名链接" Margin="0,10,0,2"/><TextBox Text="{Binding ApplicationWorkspace.ApplicationUrl}"/><TextBlock Text="下一步" Margin="0,8,0,2"/><TextBox Text="{Binding ApplicationWorkspace.NextStep}"/><TextBlock Text="下一步时间（可空）" Margin="0,8,0,2"/><TextBox Text="{Binding ApplicationWorkspace.NextStepDueAt}"/><TextBlock Text="备注" Margin="0,8,0,2"/><TextBox Text="{Binding ApplicationWorkspace.OwnerNote}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="54"/><Button Content="保存申请字段" Command="{Binding ApplicationWorkspace.SaveDetailsCommand}" HorizontalAlignment="Left" Margin="0,8,0,12"/>
-            <GroupBox Header="官网提交回执"><Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><TextBlock Text="提交时间（空白则记为现在）"/><TextBox Grid.Row="1" Text="{Binding ApplicationWorkspace.SubmissionDate}"/><TextBlock Grid.Row="2" Text="报名编号／回执号" Margin="0,6,0,0"/><TextBox Grid.Row="3" Text="{Binding ApplicationWorkspace.SubmissionReference}"/><StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,6,0,0"><Button Content="记录官网已提交" Command="{Binding ApplicationWorkspace.RecordSubmissionCommand}"/><TextBlock Text="不会自动修改阶段" Foreground="#526774" VerticalAlignment="Center" Margin="10,0,0,0"/></StackPanel></Grid></GroupBox>
-            <GroupBox Header="材料清单" Margin="0,12,0,0"><Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="110"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><DataGrid Grid.Row="0" ItemsSource="{Binding ApplicationWorkspace.Materials}" SelectedItem="{Binding ApplicationWorkspace.SelectedMaterial}" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="材料" Binding="{Binding Name}" Width="*"/><DataGridCheckBoxColumn Header="必需" Binding="{Binding IsRequired}" Width="55"/><DataGridTextColumn Header="状态" Binding="{Binding State}" Width="110"/><DataGridTextColumn Header="备注" Binding="{Binding Note}" Width="1.3*"/></DataGrid.Columns></DataGrid><StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,6,0,0"><TextBox Text="{Binding ApplicationWorkspace.MaterialName}" Width="150" ToolTip="新增材料名称"/><CheckBox Content="必需" IsChecked="{Binding ApplicationWorkspace.MaterialRequired}" VerticalAlignment="Center" Margin="8,0"/><ComboBox ItemsSource="{Binding ApplicationWorkspace.MaterialStateOptions}" SelectedItem="{Binding ApplicationWorkspace.MaterialState}" Width="120"/><Button Content="添加材料" Command="{Binding ApplicationWorkspace.AddMaterialCommand}"/><Button Content="保存选中材料" Command="{Binding ApplicationWorkspace.UpdateMaterialCommand}"/></StackPanel><TextBox Grid.Row="2" Text="{Binding ApplicationWorkspace.MaterialNote}" ToolTip="材料备注" Margin="0,6,0,0"/></Grid></GroupBox>
-            <GroupBox Header="提醒" Margin="0,12,0,0"><Grid Margin="8"><Grid.RowDefinitions><RowDefinition Height="95"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><DataGrid Grid.Row="0" ItemsSource="{Binding ApplicationWorkspace.Reminders}" SelectedItem="{Binding ApplicationWorkspace.SelectedReminder}" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="类型" Binding="{Binding Kind}" Width="110"/><DataGridTextColumn Header="时间" Binding="{Binding DueAt}" Width="1.2*"/><DataGridTextColumn Header="依据" Binding="{Binding Basis}" Width="1.6*"/><DataGridTextColumn Header="状态" Binding="{Binding State}" Width="90"/></DataGrid.Columns></DataGrid><StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,6,0,0"><TextBox Text="{Binding ApplicationWorkspace.ReminderKind}" Width="110"/><TextBox Text="{Binding ApplicationWorkspace.ReminderDueAt}" Width="145" ToolTip="提醒时间"/><TextBox Text="{Binding ApplicationWorkspace.ReminderBasis}" Width="190" ToolTip="提醒依据"/><Button Content="添加提醒" Command="{Binding ApplicationWorkspace.AddReminderCommand}"/><Button Content="完成选中提醒" Command="{Binding ApplicationWorkspace.CompleteReminderCommand}"/></StackPanel></Grid></GroupBox>
-            <TextBlock Text="阶段事件" FontWeight="SemiBold" Margin="0,14,0,4"/><ListBox ItemsSource="{Binding ApplicationWorkspace.Events}" Height="105"><ListBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Type}"/><TextBlock Text=" · "/><TextBlock Text="{Binding NextStage}"/><TextBlock Text="  "/><TextBlock Text="{Binding Note}"/></StackPanel></DataTemplate></ListBox.ItemTemplate></ListBox>
-          </StackPanel></ScrollViewer>
-        </Grid>
-      </TabItem>
-      <TabItem Header="Records">
-        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-          <WrapPanel Grid.Row="0"><TextBox Text="{Binding RecordGrid.NewCollectionName}" Width="180" ToolTip="新建自定义表"/><Button Content="新建表" Command="{Binding RecordGrid.CreateCollectionCommand}"/><ComboBox ItemsSource="{Binding RecordGrid.CustomCollections}" SelectedItem="{Binding RecordGrid.SelectedCollection}" DisplayMemberPath="Name" Width="200" Margin="12,0,0,0"/><Button Content="新建记录" Command="{Binding RecordGrid.CreateRecordCommand}"/><TextBox Text="{Binding RecordGrid.NewFieldKey}" Width="120" ToolTip="字段 key" Margin="12,0,0,0"/><TextBox Text="{Binding RecordGrid.NewFieldName}" Width="140" ToolTip="字段名称"/><ComboBox ItemsSource="{Binding RecordGrid.FieldTypes}" SelectedItem="{Binding RecordGrid.NewFieldType}" Width="110"/><Button Content="新建字段" Command="{Binding RecordGrid.CreateFieldCommand}"/></WrapPanel>
-          <WrapPanel Grid.Row="1" Margin="0,8,0,0"><TextBlock Text="视图" VerticalAlignment="Center" Margin="0,0,6,0"/><ComboBox ItemsSource="{Binding RecordGrid.Views}" SelectedItem="{Binding RecordGrid.SelectedView}" DisplayMemberPath="Name" Width="170"/><TextBox Text="{Binding RecordGrid.NewViewName}" Width="150" ToolTip="视图名称" Margin="10,0,0,0"/><Button Content="保存视图" Command="{Binding RecordGrid.SaveViewCommand}"/><TextBlock Text="筛选" VerticalAlignment="Center" Margin="14,0,6,0"/><ComboBox ItemsSource="{Binding RecordGrid.Fields}" SelectedItem="{Binding RecordGrid.SelectedFilterField}" DisplayMemberPath="DisplayName" Width="130"/><ComboBox ItemsSource="{Binding RecordGrid.FilterOperators}" SelectedItem="{Binding RecordGrid.FilterOperator}" Width="90"/><TextBox Text="{Binding RecordGrid.FilterValue}" Width="150" ToolTip="筛选值"/><Button Content="应用" Command="{Binding RecordGrid.ApplyFilterCommand}"/><Button Content="清除" Command="{Binding RecordGrid.ClearFilterCommand}"/><TextBlock Text="排序" VerticalAlignment="Center" Margin="14,0,6,0"/><ComboBox ItemsSource="{Binding RecordGrid.Fields}" SelectedItem="{Binding RecordGrid.SelectedSortField}" DisplayMemberPath="DisplayName" Width="130"/><ComboBox ItemsSource="{Binding RecordGrid.SortDirections}" SelectedItem="{Binding RecordGrid.SortDirection}" Width="70"/></WrapPanel>
-          <WrapPanel Grid.Row="2" Margin="0,8,0,0"><Button Content="选择 CSV/XLSX 并预览导入" Command="{Binding RecordGrid.PreviewImportCommand}"/><Button Content="提交导入批次" Command="{Binding RecordGrid.CommitImportCommand}"/><Button Content="取消导入批次" Command="{Binding RecordGrid.CancelImportCommand}"/><TextBlock Text="{Binding RecordGrid.ImportSourcePath}" Foreground="#526774" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="520"/><TextBlock Text="{Binding RecordGrid.ImportStatus}" Foreground="#167D8D" VerticalAlignment="Center" Margin="10,0,0,0"/></WrapPanel>
-          <Grid Grid.Row="3" Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><DataGrid ItemsSource="{Binding RecordGrid.Rows}" SelectedItem="{Binding RecordGrid.SelectedRow}" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="记录 ID" Binding="{Binding RecordId}" Width="1.2*"/><DataGridTextColumn Header="值摘要" Binding="{Binding DisplayValue}" Width="2*"/><DataGridTextColumn Header="revision" Binding="{Binding Revision}" Width="70"/></DataGrid.Columns></DataGrid><StackPanel Grid.Column="1" Margin="18,0,0,0"><TextBlock Text="字段编辑" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="字段" Margin="0,12,0,2"/><ComboBox ItemsSource="{Binding RecordGrid.Fields}" SelectedItem="{Binding RecordGrid.SelectedField}" DisplayMemberPath="DisplayName"/><TextBlock Text="字段值（选择／关联使用稳定 ID，多选逗号分隔）" Margin="0,10,0,2"/><TextBox Text="{Binding RecordGrid.EditValue, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="80" TextWrapping="Wrap"/><Button Content="保存单元格" Command="{Binding RecordGrid.SaveCellCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"/><TextBlock Text="Editable 字段可直接修改；系统状态字段必须走领域命令。" Foreground="#526774" TextWrapping="Wrap" Margin="0,12,0,0"/></StackPanel></Grid>
-          <Expander Grid.Row="4" Header="导入预览错误" IsExpanded="{Binding RecordGrid.HasImportErrors, Mode=OneWay}"><DataGrid ItemsSource="{Binding RecordGrid.ImportErrors}" Height="100"><DataGrid.Columns><DataGridTextColumn Header="行" Binding="{Binding RowNumber}" Width="55"/><DataGridTextColumn Header="代码" Binding="{Binding Code}" Width="180"/><DataGridTextColumn Header="列" Binding="{Binding SourceColumn}" Width="150"/><DataGridTextColumn Header="说明" Binding="{Binding Message}" Width="*"/></DataGrid.Columns></DataGrid></Expander>
-          <TextBlock Grid.Row="5" Text="{Binding RecordGrid.Status}" Foreground="#167D8D" Margin="0,10,0,0"/>
-        </Grid>
-      </TabItem>
-      <TabItem Header="Settings">
-        <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel MaxWidth="850" HorizontalAlignment="Left">
-          <TextBlock Text="账户与工作资料" FontSize="24" FontWeight="SemiBold"/>
-          <TextBlock Text="模型账户" FontSize="18" FontWeight="SemiBold" Margin="0,18,0,6"/>
-          <TextBlock Text="服务商"/><ComboBox ItemsSource="{Binding Providers}" SelectedItem="{Binding SelectedProvider}" DisplayMemberPath="Name" IsEnabled="{Binding AccountControlsEnabled}" MinWidth="350" Margin="0,4,0,12"/>
-          <CheckBox Content="自动打开默认浏览器（关闭后可复制链接手动登录）" IsChecked="{Binding AutoOpenLoginBrowser}" Margin="0,8"/>
-          <TextBlock Text="授权方式"/><ComboBox ItemsSource="{Binding LoginMethods}" SelectedItem="{Binding SelectedLoginMethod}" DisplayMemberPath="Label" IsEnabled="{Binding AccountControlsEnabled}" Margin="0,4,0,12"/>
-          <StackPanel Visibility="{Binding ApiKeyRequired, Converter={StaticResource BoolVisibility}}"><TextBlock Text="API Key"/><PasswordBox x:Name="ProviderKeyBox" PasswordChanged="ProviderSecretChanged" IsEnabled="{Binding AccountControlsEnabled}" Padding="8" Margin="0,4,0,12"/></StackPanel>
-          <TextBlock Text="{Binding ProviderStatus}" Foreground="#167D8D"/>
-          <ProgressBar Height="4" IsIndeterminate="True" Margin="0,8" Visibility="{Binding AuthBusy, Converter={StaticResource BoolVisibility}}"/>
-          <WrapPanel><Button Content="连接账户 / 保存密钥" Command="{Binding LoginCommand}"/><Button Content="复制登录链接" Command="{Binding CopyLoginUrlCommand}"/><Button Content="重新打开授权页" Command="{Binding OpenLoginCommand}"/><Button Content="取消授权" Command="{Binding CancelAuthCommand}"/></WrapPanel>
-          <TextBlock Text="{Binding AuthPrompt}"/>
-          <ComboBox ItemsSource="{Binding AuthChoices}" SelectedItem="{Binding SelectedAuthChoice}" DisplayMemberPath="Label" Visibility="{Binding HasAuthChoices, Converter={StaticResource BoolVisibility}}" Margin="0,4,0,12"/>
-          <TextBox Text="{Binding AuthReply, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding AuthText, Converter={StaticResource BoolVisibility}}"/>
-          <PasswordBox x:Name="AuthSecretBox" PasswordChanged="AuthSecretChanged" Visibility="{Binding AuthSecret, Converter={StaticResource BoolVisibility}}" Padding="8" Margin="0,4,0,12"/>
-          <Button Content="提交授权信息" Command="{Binding AuthReplyCommand}" HorizontalAlignment="Left"/>
-          <TextBlock Text="模型"/><ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding Settings.Model}" IsEnabled="{Binding AccountControlsEnabled}" MinWidth="350" Margin="0,4,0,14"/>
-          <TextBlock Text="Gmail" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="{Binding GmailStatus}" Margin="0,6"/>
-          <TextBlock Text="{Binding GmailProgress}" Foreground="#167D8D" Margin="0,6"/>
-          <WrapPanel><Button Content="{Binding GmailConnectLabel}" Command="{Binding ConnectGmailCommand}"/><Button Content="重新授权 Gmail" Command="{Binding ReauthorizeGmailCommand}"/><Button Content="复制 Gmail 登录链接" Command="{Binding CopyGmailLoginUrlCommand}"/><Button Content="取消 Gmail 授权" Command="{Binding CancelGmailCommand}"/></WrapPanel>
-          <TextBlock Text="Gmail 同时是应用账号与投递邮箱。官方安装版已经包含登录配置，你只需在 Google 页面选择自己的账号并授权。" Foreground="#526774" Margin="0,8,0,16"/>
-          <Expander Header="开发者连接配置" Visibility="{Binding ShowGoogleSetup, Converter={StaticResource BoolVisibility}}"><StackPanel><TextBlock Text="{Binding GmailClientName}"/><Button Content="导入 Google 客户端配置" Command="{Binding ImportGoogleClientCommand}" HorizontalAlignment="Left"/></StackPanel></Expander>
-          <TextBlock Text="CV 与确认后的经历" FontSize="18" FontWeight="SemiBold"/><Button Content="导入 CV.pdf" Command="{Binding ImportCvCommand}" HorizontalAlignment="Left"/>
-          <TextBox Text="{Binding CvText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="200" VerticalScrollBarVisibility="Auto"/>
-          <TextBlock Text="研究兴趣"/><TextBox Text="{Binding Interests}"/><TextBlock Text="项目经历"/><TextBox Text="{Binding Projects}" AcceptsReturn="True" MinHeight="90" TextWrapping="Wrap"/><TextBlock Text="技能"/><TextBox Text="{Binding Skills}"/><Button Content="确认并保存新资料版本" Command="{Binding ConfirmCvCommand}" HorizontalAlignment="Left"/>
-          <TextBlock Text="资料保存在本机。进行研究和匹配时，选取的网页、论文片段及已确认经历会发送给选定的模型服务商；Gmail 凭据不会交给模型。" Foreground="#526774" Margin="0,8,0,20"/>
-          <Expander Header="检索与任务配置"><StackPanel Margin="0,12"><TextBlock Text="Brave API 密钥文件路径"/><TextBox Text="{Binding Settings.SearchKeyFile}"/><TextBlock Text="每阶段工具调用上限"/><TextBox Text="{Binding Settings.MaxToolCalls}"/><TextBlock Text="每阶段超时（秒）"/><TextBox Text="{Binding Settings.StageTimeoutSeconds}"/></StackPanel></Expander>
-          <TextBlock Text="诊断日志" FontSize="18" FontWeight="SemiBold" Margin="0,16,0,6"/>
-          <TextBlock Text="记录组件加载、授权阶段和错误代码。日志保留 14 天，不记录密钥、授权码、简历或邮件正文。"/>
-          <WrapPanel><Button Content="打开日志目录" Command="{Binding OpenLogsCommand}"/><Button Content="导出诊断日志" Command="{Binding ExportLogsCommand}"/></WrapPanel>
-          <Button Content="保存设置" Command="{Binding SaveSettingsCommand}" HorizontalAlignment="Left"/>
-        </StackPanel></ScrollViewer>
-      </TabItem>
-      <TabItem Header="Admissions">
-        <Grid>
-          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="2*"/><RowDefinition Height="Auto"/><RowDefinition Height="3*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-          <DockPanel>
-            <Button DockPanel.Dock="Right" Content="导出选中学校 CSV" Command="{Binding AdmissionWorkspace.ExportCsvCommand}"/>
-            <Button Content="刷新招生数据" Command="{Binding AdmissionWorkspace.RefreshCommand}"/>
-            <TextBlock Text="招生学校总览" FontSize="24" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Center"/>
-          </DockPanel>
-          <DataGrid Grid.Row="1" ItemsSource="{Binding AdmissionWorkspace.Schools}" SelectedItem="{Binding AdmissionWorkspace.SelectedSchool}" AutoGenerateColumns="False" Margin="0,12">
-            <DataGrid.Columns>
-              <DataGridTextColumn Header="学校" Binding="{Binding SchoolName}" Width="2*"/>
-              <DataGridTextColumn Header="开放学院" Binding="{Binding OpenDepartmentCount}" Width="*"/>
-              <DataGridTextColumn Header="开放轮次" Binding="{Binding OpenRoundCount}" Width="*"/>
-              <DataGridTextColumn Header="待开放学院" Binding="{Binding UpcomingDepartmentCount}" Width="*"/>
-              <DataGridTextColumn Header="历史预测学院" Binding="{Binding ForecastDepartmentCount}" Width="*"/>
-              <DataGridTextColumn Header="待核实轮次" Binding="{Binding UnknownRoundCount}" Width="*"/>
-              <DataGridTextColumn Header="已结束轮次" Binding="{Binding ClosedRoundCount}" Width="*"/>
-            </DataGrid.Columns>
-          </DataGrid>
-          <TextBlock Grid.Row="2" Text="{Binding AdmissionWorkspace.Status}" Foreground="#167D8D" Margin="0,4"/>
-          <DataGrid Grid.Row="3" ItemsSource="{Binding AdmissionWorkspace.Rounds}" AutoGenerateColumns="False" Margin="0,8">
-            <DataGrid.Columns>
-              <DataGridTextColumn Header="学院" Binding="{Binding DepartmentName}" Width="1.4*"/>
-              <DataGridTextColumn Header="项目" Binding="{Binding ProgramName}" Width="1.4*"/>
-              <DataGridTextColumn Header="类型" Binding="{Binding Kind}" Width="*"/>
-              <DataGridTextColumn Header="标题" Binding="{Binding Title}" Width="2*"/>
-              <DataGridTextColumn Header="实际状态" Binding="{Binding Assessment.ActualState}" Width="*"/>
-              <DataGridTextColumn Header="依据" Binding="{Binding Assessment.ActualBasis}" Width="*"/>
-              <DataGridTextColumn Header="预计阶段" Binding="{Binding Assessment.EstimatedPhase}" Width="*"/>
-              <DataGridTextColumn Header="报名开始" Binding="{Binding Assessment.Start}" Width="1.4*"/>
-              <DataGridTextColumn Header="报名截止" Binding="{Binding Assessment.EndExclusive}" Width="1.4*"/>
-            </DataGrid.Columns>
-          </DataGrid>
-          <TextBlock Grid.Row="4" Text="历史预测仅供参考；实际状态只来自当前年度观察。学校统计按学院去重，轮次详情保留到批次。" Foreground="#526774"/>
-        </Grid>
-      </TabItem>
-      <TabItem Header="Faculty">
-        <Grid>
-          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="2*"/><RowDefinition Height="Auto"/><RowDefinition Height="3*"/></Grid.RowDefinitions>
-          <DockPanel>
-            <Button DockPanel.Dock="Right" Content="刷新导师与覆盖" Command="{Binding FacultyWorkspace.RefreshCommand}"/>
-            <TextBox Text="{Binding FacultyWorkspace.Filter, UpdateSourceTrigger=PropertyChanged}" Width="320" ToolTip="按姓名、机构、主页证据筛选"/>
-            <TextBlock Text="导师目录" FontSize="24" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Center"/>
-          </DockPanel>
-          <DataGrid Grid.Row="1" ItemsSource="{Binding FacultyWorkspace.Faculties}" SelectedItem="{Binding FacultyWorkspace.SelectedFaculty}" AutoGenerateColumns="False" Margin="0,12">
-            <DataGrid.Columns>
-              <DataGridTextColumn Header="姓名" Binding="{Binding Name}" Width="180"/>
-              <DataGridTextColumn Header="机构" Binding="{Binding Institution}" Width="2*"/>
-              <DataGridTextColumn Header="任职数" Binding="{Binding AppointmentCount}" Width="70"/>
-              <DataGridTextColumn Header="公开邮箱" Binding="{Binding Email}" Width="*"/>
-              <DataGridTextColumn Header="证据更新时间" Binding="{Binding LastEvidenceAt}" Width="1.4*"/>
-            </DataGrid.Columns>
-          </DataGrid>
-          <TextBlock Grid.Row="2" Text="{Binding FacultyWorkspace.Status}" Foreground="#167D8D" Margin="0,4"/>
-          <Grid Grid.Row="3">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="1.15*"/></Grid.ColumnDefinitions>
-            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,8,16,0">
-              <StackPanel>
-                <TextBlock Text="导师详情" FontSize="20" FontWeight="SemiBold"/>
-                <TextBlock Text="{Binding FacultyWorkspace.SelectedFaculty.Name, TargetNullValue=请选择导师}" FontSize="18" Margin="0,8,0,0"/>
-                <TextBlock Text="{Binding FacultyWorkspace.SelectedFaculty.Institution}" Foreground="#167D8D"/>
-                <TextBlock Text="{Binding FacultyWorkspace.SelectedFaculty.Homepage}" TextWrapping="Wrap" Margin="0,4"/>
-                <TextBlock Text="任职" FontWeight="SemiBold" Margin="0,12,0,4"/>
-                <ItemsControl ItemsSource="{Binding FacultyWorkspace.Appointments}">
-                  <ItemsControl.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Margin="0,2"><TextBlock Text="{Binding SchoolName}"/><TextBlock Text=" / "/><TextBlock Text="{Binding DepartmentName}"/></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <TextBlock Text="证据声明" FontWeight="SemiBold" Margin="0,12,0,4"/>
-                <ItemsControl ItemsSource="{Binding FacultyWorkspace.Evidence}">
-                  <ItemsControl.ItemTemplate><DataTemplate><StackPanel Margin="0,2"><TextBlock Text="{Binding ClaimType}" FontWeight="SemiBold"/><TextBlock Text="{Binding QuotedText}" TextWrapping="Wrap"/><TextBlock Text="{Binding ConfidenceLabel}" Foreground="#526774"/></StackPanel></DataTemplate></ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </StackPanel>
-            </ScrollViewer>
-            <Grid Grid.Column="1" Margin="0,8,0,0">
-              <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-              <GroupBox Header="论文与阅读范围" Margin="0,0,0,8"><DataGrid ItemsSource="{Binding FacultyWorkspace.Papers}" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="年份" Binding="{Binding Paper.Year}" Width="60"/><DataGridTextColumn Header="标题" Binding="{Binding Paper.Title}" Width="*"/><DataGridTextColumn Header="解析" Binding="{Binding Paper.ParseStatus}" Width="90"/><DataGridTextColumn Header="阅读段" Binding="{Binding Reads.Count}" Width="70"/></DataGrid.Columns></DataGrid></GroupBox>
-              <GroupBox Grid.Row="1" Header="评价" Margin="0,0,0,8"><DataGrid ItemsSource="{Binding FacultyWorkspace.Evaluations}" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="来源" Binding="{Binding SourceType}" Width="120"/><DataGridTextColumn Header="摘要" Binding="{Binding Summary}" Width="*"/><DataGridTextColumn Header="核验" Binding="{Binding VerificationState}" Width="100"/></DataGrid.Columns></DataGrid></GroupBox>
-              <GroupBox Grid.Row="2" Header="采集覆盖与失败"><DataGrid ItemsSource="{Binding FacultyWorkspace.Coverage}" AutoGenerateColumns="False"><DataGrid.Columns><DataGridTextColumn Header="学校" Binding="{Binding SchoolId}" Width="*"/><DataGridTextColumn Header="学院" Binding="{Binding DepartmentId}" Width="*"/><DataGridTextColumn Header="状态" Binding="{Binding CoverageState}" Width="1.3*"/><DataGridTextColumn Header="页面" Binding="{Binding FetchedPageCount}" Width="60"/><DataGridTextColumn Header="导师" Binding="{Binding ParsedEntryCount}" Width="60"/><DataGridTextColumn Header="失败原因" Binding="{Binding Error}" Width="1.3*"/></DataGrid.Columns></DataGrid></GroupBox>
-            </Grid>
-          </Grid>
-        </Grid>
-      </TabItem>
-      <TabItem Header="Recommendations">
-        <Grid>
-          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="2*"/><RowDefinition Height="3*"/></Grid.RowDefinitions>
-          <DockPanel>
-            <Button DockPanel.Dock="Right" Content="刷新推荐运行" Command="{Binding RecommendationCenter.RefreshCommand}"/>
-            <TextBlock Text="推荐中心" FontSize="24" FontWeight="SemiBold"/>
-          </DockPanel>
-          <TextBlock Grid.Row="1" Text="{Binding RecommendationCenter.Status}" Foreground="#167D8D" Margin="0,8,0,0"/>
-          <StackPanel Grid.Row="2" Margin="0,8,0,8">
-            <TextBlock Text="{Binding RecommendationCenter.RunSummary}" TextWrapping="Wrap"/>
-            <TextBlock Text="{Binding RecommendationCenter.ScopeSummary}" Foreground="#526774" TextWrapping="Wrap"/>
-            <TextBlock Text="{Binding RecommendationCenter.CoverageSummary}" Foreground="#526774" TextWrapping="Wrap"/>
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-              <TextBlock Text="当前运行" VerticalAlignment="Center" Margin="0,0,8,0"/>
-              <ComboBox ItemsSource="{Binding RecommendationCenter.Runs}" SelectedItem="{Binding RecommendationCenter.SelectedRun}" DisplayMemberPath="Id" Width="240"/>
-              <TextBlock Text="对比运行" VerticalAlignment="Center" Margin="18,0,8,0"/>
-              <ComboBox ItemsSource="{Binding RecommendationCenter.Runs}" SelectedItem="{Binding RecommendationCenter.CompareRun}" DisplayMemberPath="Id" Width="240"/>
+      </Border>
+      <Grid Grid.Row="1">
+        <Border x:Name="SignInPanel" Background="White" CornerRadius="{StaticResource SurfaceRadius}" Padding="40" Visibility="{Binding NeedsSignIn, Converter={StaticResource BoolVisibility}}" Margin="24">
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel MaxWidth="620" HorizontalAlignment="Center" VerticalAlignment="Center">
+              <TextBlock Text="使用 Gmail 登录 Tools Touch" FontSize="28" FontWeight="SemiBold" Foreground="#182B3A" Margin="0,0,0,16" />
+              <TextBlock Text="首次使用请先登录。这个 Gmail 既是你的应用账号，也是之后投递邮件的发件邮箱。" FontSize="16" Margin="0,0,0,20" />
+              <Button Content="使用 Google 登录" Command="{Binding ConnectGmailCommand}" FontSize="16" Padding="24,14" HorizontalAlignment="Left" Style="{StaticResource PrimaryButton}" />
+              <CheckBox Content="自动打开默认浏览器" IsChecked="{Binding AutoOpenLoginBrowser}" Margin="0,8" />
+              <Button Content="复制 Gmail 登录链接" Command="{Binding CopyGmailLoginUrlCommand}" HorizontalAlignment="Left" Style="{StaticResource TextButton}" />
+              <Button Content="打开诊断日志" Command="{Binding OpenLogsCommand}" HorizontalAlignment="Left" Style="{StaticResource TextButton}" />
+              <Button Content="取消登录" Command="{Binding CancelGmailCommand}" HorizontalAlignment="Left" Style="{StaticResource TextButton}" />
+              <TextBlock Text="{Binding GmailProgress}" Foreground="#167D8D" Margin="0,8,0,16" />
+              <TextBlock Text="授权完成后自动进入工作台，下次打开保留登录。发送邮件前仍需你逐封确认。" Foreground="#526774" Margin="0,0,0,20" />
+              <Expander Header="开发者连接配置" Visibility="{Binding ShowGoogleSetup, Converter={StaticResource BoolVisibility}}">
+                <StackPanel Margin="0,12">
+                  <TextBlock Text="{Binding GmailClientName}" />
+                  <TextBlock Text="源码或开发版本可在此导入 Google 桌面 OAuth 客户端配置。官方安装版由发布者预置，普通用户无需配置。" Margin="0,8" />
+                  <Button Content="导入 Google 客户端配置" Command="{Binding ImportGoogleClientCommand}" HorizontalAlignment="Left" />
+                  <Button Content="打开诊断日志" Command="{Binding OpenLogsCommand}" HorizontalAlignment="Left" Style="{StaticResource TextButton}" />
+                </StackPanel>
+              </Expander>
             </StackPanel>
-          </StackPanel>
-          <DataGrid Grid.Row="3" ItemsSource="{Binding RecommendationCenter.Items}" AutoGenerateColumns="False" Margin="0,0,0,10">
-            <DataGrid.Columns>
-              <DataGridTextColumn Header="对象" Binding="{Binding TargetId}" Width="1.2*"/><DataGridTextColumn Header="类型" Binding="{Binding TargetKind}" Width="1.1*"/>
-              <DataGridTextColumn Header="资格" Binding="{Binding Eligibility}" Width="*"/><DataGridTextColumn Header="排名" Binding="{Binding Rank}" Width="60"/>
-              <DataGridTextColumn Header="已知分" Binding="{Binding Score}" Width="70"/><DataGridTextColumn Header="区间" Binding="{Binding ScoreRange}" Width="90"/>
-              <DataGridTextColumn Header="覆盖" Binding="{Binding Coverage}" Width="90"/><DataGridTextColumn Header="分项" Binding="{Binding Components}" Width="2*"/>
-              <DataGridTextColumn Header="证据" Binding="{Binding Evidence}" Width="1.4*"/><DataGridTextColumn Header="缺失" Binding="{Binding MissingFacts}" Width="1.2*"/><DataGridTextColumn Header="理由" Binding="{Binding Reasons}" Width="1.4*"/>
-            </DataGrid.Columns>
-          </DataGrid>
-          <GroupBox Grid.Row="4" Header="运行对比（当前 − 对比）">
-            <DataGrid ItemsSource="{Binding RecommendationCenter.Comparison}" AutoGenerateColumns="False">
-              <DataGrid.Columns>
-                <DataGridTextColumn Header="对象" Binding="{Binding TargetId}" Width="1.2*"/><DataGridTextColumn Header="当前资格" Binding="{Binding CurrentEligibility}" Width="*"/>
-                <DataGridTextColumn Header="当前排名" Binding="{Binding CurrentRank}" Width="70"/><DataGridTextColumn Header="当前分" Binding="{Binding CurrentScore}" Width="70"/>
-                <DataGridTextColumn Header="对比资格" Binding="{Binding ComparedEligibility}" Width="*"/><DataGridTextColumn Header="对比排名" Binding="{Binding ComparedRank}" Width="70"/>
-                <DataGridTextColumn Header="排名变化" Binding="{Binding RankChange}" Width="70"/><DataGridTextColumn Header="分数变化" Binding="{Binding ScoreChange}" Width="80"/>
-              </DataGrid.Columns>
-            </DataGrid>
-          </GroupBox>
+          </ScrollViewer>
+        </Border>
+        <Grid x:Name="WorkspacePanel" Visibility="{Binding IsSignedIn, Converter={StaticResource BoolVisibility}}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="208" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0" Padding="12,8">
+            <ListBox x:Name="WorkspaceNavigation" ItemsSource="{Binding Source={StaticResource NavigationGroups}}" SelectedValuePath="Id" SelectedValue="{Binding SelectedNavigationPage, Mode=TwoWay}" KeyboardNavigation.TabNavigation="Once" AutomationProperties.Name="工作区导航">
+              <ListBox.GroupStyle>
+                <GroupStyle>
+                  <GroupStyle.HeaderTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding Name}" FontSize="11" Foreground="{StaticResource MutedBrush}" Margin="10,12,0,6" />
+                    </DataTemplate>
+                  </GroupStyle.HeaderTemplate>
+                </GroupStyle>
+              </ListBox.GroupStyle>
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="28" />
+                      <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Path Data="{Binding Icon}" Width="16" Height="16" Stretch="Uniform" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.5" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="13" VerticalAlignment="Center" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Border>
+          <Grid Grid.Column="1" Margin="24,20,24,16">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <StackPanel Margin="0,0,0,16">
+              <TextBlock Text="{Binding PageTitle}" Style="{StaticResource PageTitle}" />
+              <TextBlock Text="{Binding PageDescription}" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,0" />
+            </StackPanel>
+            <Border Grid.Row="1" Background="{StaticResource SurfaceBrush}" CornerRadius="{StaticResource SurfaceRadius}" Padding="16">
+              <TabControl x:Name="WorkspaceTabs" SelectedIndex="{Binding SelectedPage, Mode=TwoWay}" BorderThickness="0" Padding="0">
+                <TabControl.Template>
+                  <ControlTemplate TargetType="TabControl">
+                    <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent" />
+                  </ControlTemplate>
+                </TabControl.Template>
+                <TabItem Header="工作概览">
+                  <pages:DashboardPage x:Name="DashboardView" />
+                </TabItem>
+                <TabItem Header="发现导师">
+                  <pages:DiscoverPage x:Name="DiscoverView" />
+                </TabItem>
+                <TabItem Header="本地导师库">
+                  <pages:ProfessorsPage x:Name="ProfessorsView" />
+                </TabItem>
+                <TabItem Header="导师详情">
+                  <pages:ProfessorDetailPage x:Name="ProfessorDetailView" />
+                </TabItem>
+                <TabItem Header="邮件工作区">
+                  <pages:OutreachPage x:Name="OutreachView" />
+                </TabItem>
+                <TabItem Header="申请记录">
+                  <pages:ApplicationsPage x:Name="ApplicationsView" />
+                </TabItem>
+                <TabItem Header="表格记录">
+                  <pages:RecordsPage x:Name="RecordsView" />
+                </TabItem>
+                <TabItem Header="资料与账户">
+                  <pages:SettingsPage x:Name="SettingsView" />
+                </TabItem>
+                <TabItem Header="招生窗口">
+                  <pages:AdmissionsPage x:Name="AdmissionsView" />
+                </TabItem>
+                <TabItem Header="导师目录与覆盖">
+                  <pages:FacultyPage x:Name="FacultyView" />
+                </TabItem>
+                <TabItem Header="推荐中心">
+                  <pages:RecommendationsPage x:Name="RecommendationsView" />
+                </TabItem>
+              </TabControl>
+            </Border>
+          </Grid>
         </Grid>
-      </TabItem>
-    </TabControl>
-      </DockPanel>
+      </Grid>
+      <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16,8">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <StackPanel>
+            <TextBlock Text="{Binding Status}" Style="{StaticResource Caption}" MaxHeight="48" ToolTip="{Binding Status}" />
+            <ProgressBar Height="3" IsIndeterminate="True" Visibility="{Binding Busy, Converter={StaticResource BoolVisibility}}" Margin="0,4,0,0" />
+          </StackPanel>
+          <WrapPanel Grid.Column="1" Margin="24,0,0,0">
+            <TextBlock Text="{Binding ComponentStatus}" Style="{StaticResource Caption}" MaxWidth="320" VerticalAlignment="Center" ToolTip="{Binding ComponentStatus}" />
+            <ProgressBar Width="56" Height="3" IsIndeterminate="True" Margin="8,0" Visibility="{Binding ComponentLoading, Converter={StaticResource BoolVisibility}}" />
+            <Button Content="重试加载" Command="{Binding ConnectAgentCommand}" Style="{StaticResource TextButton}" Margin="8,0,0,0" />
+          </WrapPanel>
+        </Grid>
+      </Border>
     </Grid>
-  </DockPanel>
+  </AdornerDecorator>
 </Window>

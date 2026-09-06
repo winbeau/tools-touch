@@ -1,0 +1,171 @@
+<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:ui="clr-namespace:ToolsTouch.Desktop.Controls" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="ToolsTouch.Desktop.Pages.AdmissionsPage" Focusable="False">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="2*" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="3*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <WrapPanel ui:WorkspaceLayout.Gap="8">
+      <TextBlock Text="申请年度" VerticalAlignment="Center" />
+      <TextBox Width="90" Text="{Binding AdmissionWorkspace.TargetCycleYear, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" ToolTip="输入年份后刷新招生数据" VerticalAlignment="Center" />
+      <Button DockPanel.Dock="Right" Content="导出选中学校 CSV" Command="{Binding AdmissionWorkspace.ExportCsvCommand}" VerticalAlignment="Center" />
+      <Button Content="刷新招生数据" Command="{Binding AdmissionWorkspace.RefreshCommand}" VerticalAlignment="Center" />
+    </WrapPanel>
+    <DataGrid Grid.Row="1" ItemsSource="{Binding AdmissionWorkspace.Schools}" SelectedItem="{Binding AdmissionWorkspace.SelectedSchool}" AutoGenerateColumns="False" Margin="0,12" ui:EmptyState.Message="尚无招生数据。采集或导入来源后，刷新查看。">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="学校" Binding="{Binding SchoolName}" Width="2*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding SchoolName}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="开放学院" Binding="{Binding OpenDepartmentCount}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding OpenDepartmentCount}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="开放轮次" Binding="{Binding OpenRoundCount}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding OpenRoundCount}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="待开放学院" Binding="{Binding UpcomingDepartmentCount}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding UpcomingDepartmentCount}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="历史预测学院" Binding="{Binding ForecastDepartmentCount}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding ForecastDepartmentCount}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="待核实轮次" Binding="{Binding UnknownRoundCount}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding UnknownRoundCount}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="已结束轮次" Binding="{Binding ClosedRoundCount}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding ClosedRoundCount}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+    <TextBlock Grid.Row="2" Text="{Binding AdmissionWorkspace.Status}" Foreground="{StaticResource AccentBrush}" Margin="0,4" />
+    <DataGrid Grid.Row="3" ItemsSource="{Binding AdmissionWorkspace.Rounds}" AutoGenerateColumns="False" Margin="0,8" ui:EmptyState.Message="选择上方学校，查看学院与招生批次。">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="学院" Binding="{Binding DepartmentName}" Width="1.4*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding DepartmentName}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="项目" Binding="{Binding ProgramName}" Width="1.4*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding ProgramName}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="类型" Binding="{Binding Kind, Converter={StaticResource DisplayLabel}}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Kind}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="标题" Binding="{Binding Title}" Width="2*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Title}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="实际状态" Binding="{Binding Assessment.ActualState, Converter={StaticResource DisplayLabel}}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Assessment.ActualState}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="依据" Binding="{Binding Assessment.ActualBasis}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Assessment.ActualBasis}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="预计阶段" Binding="{Binding Assessment.EstimatedPhase, Converter={StaticResource DisplayLabel}}" Width="*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Assessment.EstimatedPhase}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="报名开始" Binding="{Binding Assessment.Start}" Width="1.4*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Assessment.Start}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+        <DataGridTextColumn Header="报名截止" Binding="{Binding Assessment.EndExclusive}" Width="1.4*">
+          <DataGridTextColumn.ElementStyle>
+            <Style TargetType="TextBlock">
+              <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+              <Setter Property="TextWrapping" Value="NoWrap" />
+              <Setter Property="ToolTip" Value="{Binding Assessment.EndExclusive}" />
+            </Style>
+          </DataGridTextColumn.ElementStyle>
+        </DataGridTextColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+    <TextBlock Grid.Row="4" Text="历史预测仅供参考；实际状态只来自当前年度观察。学校统计按学院去重，轮次详情保留到批次。" Foreground="{StaticResource MutedBrush}" />
+  </Grid>
+</UserControl>

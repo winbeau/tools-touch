@@ -18,7 +18,7 @@ using ToolsTouch.Core;
 using ToolsTouch.Desktop;
 using ToolsTouch.Infrastructure.Recommendation;
 
-internal static class Program
+internal static partial class Program
 {
     private const string TestSecret = "synthetic-credential-测试-only";
     private static readonly List<object> Results = [];
@@ -174,7 +174,7 @@ internal static class Program
                 tabs.SelectedIndex = 5; Pump();
                 model.SelectedProvider = model.Providers.Single(item => item.Id == "deepseek"); Pump();
                 Check(model.ApiKeyRequired && !model.LoginCommand.CanExecute(null), "empty API key accepted");
-                var key = (PasswordBox)window.FindName("ProviderKeyBox");
+                var key = (PasswordBox)((FrameworkElement)window.FindName("SettingsView")).FindName("ProviderKeyBox");
                 key.Password = "synthetic-native-test-key"; Pump();
                 Check(model.LoginCommand.CanExecute(null), "native password entry did not enable login");
                 model.LoginCommand.Execute(null);
@@ -210,8 +210,8 @@ internal static class Program
 
             Test("eleven pages and detail tabs render without binding errors", () =>
             {
-                string[] expectedPages = ["Dashboard", "Discover", "Professors", "Professor Detail", "Outreach",
-                    "Applications", "Records", "Settings", "Admissions", "Faculty", "Recommendations"];
+                string[] expectedPages = ["工作概览", "发现导师", "本地导师库", "导师详情", "邮件工作区",
+                    "申请记录", "表格记录", "资料与账户", "招生窗口", "导师目录与覆盖", "推荐中心"];
                 Check(tabs.Items.Cast<TabItem>().Select(tab => tab.Header.ToString()).SequenceEqual(expectedPages),
                     "workspace navigation does not expose all eleven pages");
                 var firstGrid = Descendants<DataGrid>(window).First();
@@ -240,7 +240,7 @@ internal static class Program
 
             Test("recommendation center keeps scope, coverage and run comparison visible", () =>
             {
-                tabs.SelectedIndex = 8; Pump();
+                tabs.SelectedIndex = (int)WorkspacePage.Recommendations; Pump();
                 Check(model.RecommendationCenter.Runs.Count == 2 && model.RecommendationCenter.Items.Count == 1,
                     "recommendation runs were not loaded into the center");
                 model.RecommendationCenter.SelectedRun = model.RecommendationCenter.Runs.Single(run => run.Level == "Semantic");
@@ -251,10 +251,12 @@ internal static class Program
                 Snapshot(window, Path.Combine(output, "recommendation-center.png"));
             });
 
+            RunWorkspaceUiChecks(Test, model, window, tabs, database, draft.Id, output);
+
             Test("draft selection, editing, saving and refresh preserve the editor", () =>
             {
                 tabs.SelectedIndex = 4; Pump();
-                var list = Descendants<ListBox>(window).Single();
+                var list = Descendants<ListBox>(window).Single(control => BindingOperations.GetBinding(control, ItemsControl.ItemsSourceProperty)?.Path.Path == "Drafts");
                 list.SelectedItem = model.Drafts.Single(item => item.Id == draft.Id); Pump();
                 var body = Descendants<TextBox>(window).Single(box => BindingOperations.GetBinding(box, TextBox.TextProperty)?.Path.Path == "Body");
                 Check(!body.IsReadOnly, "draft should be editable");
@@ -357,8 +359,10 @@ internal static class Program
     private static void Snapshot(Window window, string path)
     {
         window.UpdateLayout();
-        var bitmap = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(window);
+        var content = (FrameworkElement)window.Content;
+        var dpi = VisualTreeHelper.GetDpi(content);
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(content.ActualWidth * dpi.DpiScaleX), (int)Math.Ceiling(content.ActualHeight * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+        bitmap.Render(content);
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var file = File.Create(path); encoder.Save(file);
     }
@@ -370,12 +374,18 @@ internal static class Program
     }
     private sealed class GoogleHandler : HttpMessageHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            object value = request.RequestUri!.AbsolutePath == "/token"
+            object value;
+            if (request.RequestUri!.AbsolutePath.Contains("/threads/"))
+            {
+                if (mailResponseGate != null) await mailResponseGate.Task.WaitAsync(cancellationToken);
+                value = new { messages = Array.Empty<object>() };
+            }
+            else value = request.RequestUri.AbsolutePath == "/token"
                 ? new { access_token = "synthetic-access", refresh_token = "synthetic-refresh", expires_in = 3600, scope = GmailAuth.Scopes }
                 : new { emailAddress = "sender@example.org" };
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, "application/json") });
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, "application/json") };
         }
     }
     private sealed class TestTransport : IMailTransport
